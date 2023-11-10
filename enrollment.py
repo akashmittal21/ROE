@@ -486,15 +486,15 @@ logging.getLogger("fpdf2").setLevel(logging.ERROR)
 
 
 # String version
-# json_encoded_string = sys.argv[1]
-# json_decoded_string = unquote(json_encoded_string)
-# data = json.loads(json_decoded_string)
+json_encoded_string = sys.argv[1]
+json_decoded_string = unquote(json_encoded_string)
+data = json.loads(json_decoded_string)
 
 # File version
-json_file = sys.argv[1]
-with open(json_file, 'r') as myFile:
-    json_file = myFile.read()
-data = json.loads(json_file)
+# json_file = sys.argv[1]
+# with open(json_file, 'r') as myFile:
+#     json_file = myFile.read()
+# data = json.loads(json_file)
 
 versionNo = "v1.6"
 pdf = FPDF('P', 'cm', 'letter')
