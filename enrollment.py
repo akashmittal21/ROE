@@ -189,7 +189,7 @@ def first_page(data, versionNo):
     else:
         spouse_email = ""
     # child_counter = 1
-    if data['having_spouse'] == True:
+    if data['having_spouse'] is True:
         pdf.set_font('dejavu', '', 7.8)
         pdf.text(1.5, y, 'S')
         pdf.text(2.2, y, data['spouse_details']['first_name'].capitalize())  # first name
@@ -218,13 +218,13 @@ def first_page(data, versionNo):
 
     # 4 different check marks in the form
     pdf.set_font('dejavu', '', 11)
-    if data['working_20hours'] == True:  # working 20 hours
+    if data['working_20hours'] is True:  # working 20 hours
         pdf.text(11.05, 8, u'\u2713')
-    if data['provincial_health_coverage'] == True:  # checking for provincial health coverage
+    if data['provincial_health_coverage'] is True:  # checking for provincial health coverage
         pdf.text(11.05, 8.68, u'\u2713')
-    if data['termsandconditions'] == True:  # terms and conditions
+    if data['termsandconditions'] is True:  # terms and conditions
         pdf.text(1.3, 22.57, u'\u2713')
-    if data['disclouseradvisor'] == True:  # advisor disclosure
+    if data['disclouseradvisor'] is True:  # advisor disclosure
         pdf.text(11.05, 22.57, u'\u2713')
 
     # Dependent Information
@@ -274,23 +274,32 @@ def first_page(data, versionNo):
     # print(y)
 
     plan_second_page = False
+    cell_height = 0.5
+    border = 0
     if int(len(data['plans'])) > 0:
-        # i = 0
-        y = 19.5
+        x_plan = 1.3
+        x_product = 1.8
+        y = 19.15
+        pdf.set_y(y)
         plan_line_counter = 0
         plan_counter = 0
-        if isinstance((data['totalAmount']), float) or isinstance((data['totalAmount']), int):
-            pad_length = len(str(format(float(data['totalAmount']), ".2f"))) + 1
-        else:
-            pad_length = len(str(format(float(data['totalAmount'].replace(',', '')), ".2f"))) + 1
-        x_pad = 0.15 * (7 - pad_length)
+        # x_plan = 0
+        # if isinstance((data['totalAmount']), float) or isinstance((data['totalAmount']), int):
+        #     pad_length = len(str(format(float(data['totalAmount']), ".2f"))) + 1
+        # else:
+        #     pad_length = len(str(format(float(data['totalAmount'].replace(',', '')), ".2f"))) + 1
+        # x_pad = 0.15 * (7 - pad_length)
+
         if child_second_page is True:
             y1 = 14.55
         else:
             pdf2.add_page()
             pdf2.set_font('dejavu', '', 7.8)
-            y1 = 5.8
+            y1 = 5.5
         for plan in data['plans']:
+            description = ""
+            if "description" in plan:
+                description = plan['description']
             if "planOptions" in plan:
                 planOptions = plan['planOptions']
                 if len(planOptions) > 0:
@@ -301,70 +310,120 @@ def first_page(data, versionNo):
                             condition = "Contact advisor to activate Year-Round Family Virtual Care"
                         else:
                             clinic_name = option['value']
-                    exec_string = f"{plan['details']} - {clinic_name} - {condition}"
+                    exec_string = f"{description} - {clinic_name} - {condition}"
                 else:
-                    exec_string = f"{plan['details']}"
+                    exec_string = f"{description}"
             else:
-                exec_string = f"{plan['details']}"
-            temp_planname = split_string(pdf, plan['planname'], 7.72)
-            temp_details = split_string(pdf, exec_string, 4.95)
-            if len(temp_planname) > 1 or len(temp_details) > 1:
-                if len(temp_planname) > len(temp_details):
-                    plan_line_counter += (len(temp_planname))
-                else:
-                    plan_line_counter += (len(temp_details))
-            else:
-                plan_line_counter += 1
-
-            # if spouse_email is not None:
-            if len(spouse_email) == 0:
-                plan_line_counter += 0
-            elif 0 < len(spouse_email) <= 36:
-                plan_line_counter += 1
-            else:
-                plan_line_counter += 1
-
-            if plan_line_counter <= 4 and plan_counter < 3:
-                printing_plans(pdf, plan, pad_length, y, x_pad, exec_string, spouse_email)
-                if len(temp_planname) > 1 or len(temp_details) > 1:
-                    if len(temp_planname) > len(temp_details):
-                        y += line_break_width * (len(temp_planname) - 1)
-                    else:
-                        y += line_break_width * (len(temp_details) - 1)
-                else:
-                    y += 0
-                if len(spouse_email) == 0:
-                    y += 0
-                elif 0 < len(spouse_email) <= 36:
-                    y += line_break_width
-                else:
-                    y += 2 * line_break_width
-                y += new_line_width
+                exec_string = f"{description}"
+            if plan_counter <= 1 and plan_line_counter <= 3:
                 plan_counter += 1
+                plan_line_counter += 1
+                pdf.set_x(x_plan)
+                pdf.multi_cell(7.8, cell_height, plan["planname"], border=border, align='L',new_x="RIGHT", new_y= "TOP")
+                pdf.multi_cell(5.7, cell_height, exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf.ln(cell_height)
+                for product in plan['products']:
+                    plan_counter += 1
+                    pdf.set_x(x_product)
+                    pdf.multi_cell(7.3, cell_height, product["name"], border=border, align='L',new_x="RIGHT", new_y= "TOP")
+                    product_description = ""
+                    if "description" in product:
+                        product_description = f"{product['planCoverage']} - {product['description']}"
+                    else:
+                        product_description = f"{product['planCoverage']}"
+                    pdf.multi_cell(5.7, cell_height, product_description, border=border, align='L', new_x="RIGHT", new_y="TOP")
+                    pdf.cell(1.4, cell_height, f"${product['price']}", border=border, align='R')
+                    pdf.cell(1.5, cell_height, f"${product['tax']}", border=border, align='R')
+                    x_total = pdf.get_x()
+                    pdf.cell(2, cell_height, f"${product['total']}", border=border, align='R')
+                    pdf.ln(cell_height)
+                # pdf.ln(cell_height)
+
             else:
+                if plan_second_page is False:
+                    pdf2.set_y(y1)
                 plan_second_page = True
-                printing_plans(pdf2, plan, pad_length, y1, x_pad, exec_string, spouse_email)
-
-                if len(temp_planname) > 1 or len(temp_details) > 1:
-                    if len(temp_planname) > len(temp_details):
-                        y1 += line_break_width * (len(temp_planname) - 1)
+                pdf2.set_x(x_plan)
+                pdf2.multi_cell(7.8, cell_height, plan["planname"], border=border, align='L', new_x="RIGHT", new_y="TOP")
+                pdf2.multi_cell(5.7, cell_height, exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf2.ln(cell_height)
+                for product in plan['products']:
+                    pdf2.set_x(x_product)
+                    pdf2.multi_cell(7.3, cell_height, product["name"], border=border, align='L', new_x="RIGHT",
+                                   new_y="TOP")
+                    product_description = ""
+                    if "description" in product:
+                        product_description = f"{product['planCoverage']} - {product['description']}"
                     else:
-                        y1 += line_break_width * (len(temp_details) - 1)
-                else:
-                    y1 += 0
-                if len(spouse_email) == 0:
-                    y1 += 0
-                elif 0 < len(spouse_email) <= 36:
-                    y1 += line_break_width
-                else:
-                    y1 += 2 * line_break_width
-                y1 += new_line_width
-                plan_counter += 1
+                        product_description = f"{product['planCoverage']}"
+                    pdf2.multi_cell(5.7, cell_height, product_description, border=border, align='L', new_x="RIGHT",
+                                   new_y="TOP")
+                    pdf2.cell(1.4, cell_height, f"${product['price']}", border=border, align='R')
+                    pdf2.cell(1.5, cell_height, f"${product['tax']}", border=border, align='R')
+                    x_total = pdf2.get_x()
+                    pdf2.cell(2, cell_height, f"${product['total']}", border=border, align='R')
+                    pdf2.ln(cell_height)
+            # pdf2.ln(cell_height)
+        #     temp_planname = split_string(pdf, plan['planname'], 7.72)
+        #     temp_details = split_string(pdf, exec_string, 4.95)
+        #     if len(temp_planname) > 1 or len(temp_details) > 1:
+        #         if len(temp_planname) > len(temp_details):
+        #             plan_line_counter += (len(temp_planname))
+        #         else:
+        #             plan_line_counter += (len(temp_details))
+        #     else:
+        #         plan_line_counter += 1
+        #
+        #     # if spouse_email is not None:
+        #     if len(spouse_email) == 0:
+        #         plan_line_counter += 0
+        #     elif 0 < len(spouse_email) <= 36:
+        #         plan_line_counter += 1
+        #     else:
+        #         plan_line_counter += 1
+        #
+        #     if plan_line_counter <= 4 and plan_counter < 3:
+        #         printing_plans(pdf, plan, pad_length, y, x_pad, exec_string, spouse_email)
+        #         if len(temp_planname) > 1 or len(temp_details) > 1:
+        #             if len(temp_planname) > len(temp_details):
+        #                 y += line_break_width * (len(temp_planname) - 1)
+        #             else:
+        #                 y += line_break_width * (len(temp_details) - 1)
+        #         else:
+        #             y += 0
+        #         if len(spouse_email) == 0:
+        #             y += 0
+        #         elif 0 < len(spouse_email) <= 36:
+        #             y += line_break_width
+        #         else:
+        #             y += 2 * line_break_width
+        #         y += new_line_width
+        #         plan_counter += 1
+        #     else:
+        #         plan_second_page = True
+        #         printing_plans(pdf2, plan, pad_length, y1, x_pad, exec_string, spouse_email)
+        #
+        #         if len(temp_planname) > 1 or len(temp_details) > 1:
+        #             if len(temp_planname) > len(temp_details):
+        #                 y1 += line_break_width * (len(temp_planname) - 1)
+        #             else:
+        #                 y1 += line_break_width * (len(temp_details) - 1)
+        #         else:
+        #             y1 += 0
+        #         if len(spouse_email) == 0:
+        #             y1 += 0
+        #         elif 0 < len(spouse_email) <= 36:
+        #             y1 += line_break_width
+        #         else:
+        #             y1 += 2 * line_break_width
+        #         y1 += new_line_width
+        #         plan_counter += 1
         if plan_second_page is True:
-            pdf2.text(18.35 + x_pad, y1 - 0.05, price(data['totalAmount'], pad_length))
+            pdf2.set_x(x_total)
+            pdf2.cell(2, cell_height, f"${data['totalAmount']}", border="TB", align='R')
         else:
-            pdf.text(18.35 + x_pad, y - 0.05, price(data['totalAmount'], pad_length))
-
+            pdf.set_x(x_total)
+            pdf.cell(2, cell_height, f"${data['totalAmount']}", border="TB", align='R')
     # End
     pdf.set_font('dejavu', '', 9)
     pdf.text(1.4, 24.15, data['paymentMethod'])  # payment method
@@ -393,8 +452,8 @@ def first_page(data, versionNo):
         pdf2.text(13, 13.5, '(Continued)')
     pdf.set_font_size(int(data['fontSize']))
     pdf2.set_font_size(int(data['fontSize']))
-    # pdf.set_text_color(0,0,0)
-    # pdf2.set_text_color(0, 0, 0)
+    pdf.set_text_color(0 ,0,0)
+    pdf2.set_text_color(0, 0, 0)
     if data['displayVersion']:
         pdf.text(0.35, 27.8, f"{versionNo}_{data['version']}")
         pdf2.text(0.35, 27.8, f"{versionNo}_{data['version']}")
@@ -496,7 +555,7 @@ data = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # data = json.loads(json_file)
 
-versionNo = "v1.6"
+versionNo = "v2"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')

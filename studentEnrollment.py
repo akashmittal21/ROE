@@ -11,7 +11,7 @@ from io import BytesIO
 import logging
 from urllib.parse import unquote
 
-#TODO: Need to write the code so that when the text goes out of its dedicatied width it needs to adjust the font till the text is in the given width 
+#TODO: Need to write the code so that when the text goes out of its dedicated width it needs to adjust the font till the text is in the given width
 
 def processInput(input_value, inputType):
     if inputType.lower() == "price":
