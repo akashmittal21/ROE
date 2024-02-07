@@ -570,7 +570,7 @@ with open(json_file, 'r') as myFile:
     json_file = myFile.read()
 jsonData = json.loads(json_file)
 
-versionNo = "v2.3"
+versionNo = "v2.4"
 pdf = FPDF('P', 'cm', 'letter')
 
 if "process" in jsonData:
