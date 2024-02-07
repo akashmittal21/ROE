@@ -274,8 +274,9 @@ def first_page(data, versionNo):
     # print(y)
 
     plan_second_page = False
-    cell_height = 0.5
+    cell_height = 0.7
     border = 0
+    lineBreak = False
     if int(len(data['plans'])) > 0:
         x_plan = 1.3
         x_product = 1.8
@@ -310,18 +311,31 @@ def first_page(data, versionNo):
                             condition = "Contact advisor to activate Year-Round Family Virtual Care"
                         else:
                             clinic_name = option['value']
-                    exec_string = f"{description} - {clinic_name} - {condition}"
+                    exec_string = f"{description} {clinic_name} - {condition}"
+                    lineBreak = True
                 else:
                     exec_string = f"{description}"
+                    lineBreak = False
             else:
                 exec_string = f"{description}"
+                lineBreak = False
+
             if plan_counter <= 1 and plan_line_counter <= 3:
                 plan_counter += 1
                 plan_line_counter += 1
                 pdf.set_x(x_plan)
+                print(plan['planname'])
                 pdf.multi_cell(7.8, cell_height, plan["planname"], border=border, align='L',new_x="RIGHT", new_y= "TOP")
-                pdf.multi_cell(5.7, cell_height, exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.ln(cell_height)
+                pdf.multi_cell(5.7, cell_height, exec_string.strip(), border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45)
+
+                if lineBreak is True:
+                    if pdf.get_string_width(exec_string) > 10.73:
+                        pdf.ln(cell_height * 1.5)
+                    else:
+                        pdf.ln(cell_height * 1.25)
+                else:
+                    pdf.ln(cell_height)
+
                 for product in plan['products']:
                     plan_counter += 1
                     pdf.set_x(x_product)
@@ -336,7 +350,7 @@ def first_page(data, versionNo):
                     pdf.cell(1.5, cell_height, f"${product['tax']}", border=border, align='R')
                     x_total = pdf.get_x()
                     pdf.cell(2, cell_height, f"${product['total']}", border=border, align='R')
-                    pdf.ln(cell_height)
+                    pdf.ln(cell_height * 0.9)
                 # pdf.ln(cell_height)
 
             else:
@@ -345,8 +359,16 @@ def first_page(data, versionNo):
                 plan_second_page = True
                 pdf2.set_x(x_plan)
                 pdf2.multi_cell(7.8, cell_height, plan["planname"], border=border, align='L', new_x="RIGHT", new_y="TOP")
-                pdf2.multi_cell(5.7, cell_height, exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf2.ln(cell_height)
+                pdf2.multi_cell(5.7, cell_height, exec_string.strip(), border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45)
+
+                if lineBreak is True:
+                    if pdf.get_string_width(exec_string) > 10.73:
+                        pdf2.ln(cell_height * 1.5)
+                    else:
+                        pdf2.ln(cell_height * 1.25)
+                else:
+                    pdf2.ln(cell_height)
+
                 for product in plan['products']:
                     pdf2.set_x(x_product)
                     pdf2.multi_cell(7.3, cell_height, product["name"], border=border, align='L', new_x="RIGHT",
@@ -420,10 +442,10 @@ def first_page(data, versionNo):
         #         plan_counter += 1
         if plan_second_page is True:
             pdf2.set_x(x_total)
-            pdf2.cell(2, cell_height, f"${data['totalAmount']}", border="TB", align='R')
+            pdf2.cell(2, cell_height, f"${data['totalAmount']}", border="T", align='R')
         else:
             pdf.set_x(x_total)
-            pdf.cell(2, cell_height, f"${data['totalAmount']}", border="TB", align='R')
+            pdf.cell(2, cell_height, f"${data['totalAmount']}", border="T", align='R')
     # End
     pdf.set_font('dejavu', '', 9)
     pdf.text(1.4, 24.15, data['paymentMethod'])  # payment method
@@ -545,15 +567,15 @@ logging.getLogger("fpdf2").setLevel(logging.ERROR)
 
 
 # String version
-json_encoded_string = sys.argv[1]
-json_decoded_string = unquote(json_encoded_string)
-data = json.loads(json_decoded_string)
+# json_encoded_string = sys.argv[1]
+# json_decoded_string = unquote(json_encoded_string)
+# data = json.loads(json_decoded_string)
 
 # File version
-# json_file = sys.argv[1]
-# with open(json_file, 'r') as myFile:
-#     json_file = myFile.read()
-# data = json.loads(json_file)
+json_file = sys.argv[1]
+with open(json_file, 'r') as myFile:
+    json_file = myFile.read()
+data = json.loads(json_file)
 
 versionNo = "v2"
 pdf = FPDF('P', 'cm', 'letter')

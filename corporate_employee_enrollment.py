@@ -14,6 +14,27 @@ from urllib.parse import unquote
 def warn(*args, **kwargs):
     pass
 
+
+def process_input(value):
+    if isinstance(value, str):
+        if '$' in value:
+            try:
+                value_as_float = round(float(value.replace('$', '')), 2)
+                return f"${value_as_float}"
+            except ValueError:
+                return "Invalid input. Please provide a valid number or a string with '$'."
+        else:
+            try:
+                value_as_float = round(float(value), 2)
+                return f"${value_as_float}"
+            except ValueError:
+                return "Invalid input. Please provide a valid number or a string with '$'."
+    elif isinstance(value, (int, float)):
+        return f"${round(value, 2)}"
+    else:
+        return "Invalid input type. Please provide a string, number, or float."
+
+
 # Checking for gender and replacing the corresponding text
 def gender_text(gender):
     if gender.upper() == 'FEMALE':
@@ -158,18 +179,25 @@ def first_page(data, versionNo):
     # pdf2.add_font('dejavu', '', tempFont)
     pdf.add_page()
     pdf.set_font('dejavu', '', 9)
-    # pdf.image(data['companyLogo'], 15, 0.7, 3, 2)
+    if 'companyLogo' in data:
+        if data['companyLogo'] is not None and data['companyLogo'] != "":
+            try:
+                pdf.image(data['companyLogo'], 15, 0.7, 3, 1.5)
+            except:
+                print(f"Company Logo not found in {data['companyLogo']}")
     full_name = f"{data['first_name']} {data['last_name']}"
     pdf.text(1.4, 5.35, full_name)  # Full Name
     checking_length(data['company_name'], 11.1, 5.35, pdf)
+    if 'employerName' in data:
+        checking_length(data['employerName'], 16, 5.35, pdf)
     checking_length(data['email'], 1.4, 6.8, pdf)
     pdf.set_font_size(9)
-    pdf.text(16, 5.35, data['date_of_hiring'])  # Date of Hire
+    pdf.text(16, 6.8, data['date_of_hiring'])  # Date of Hire
     pdf.text(6.25, 6.8, data['phone_number'] or "")  # Phone number
     # pdf.text(11.1, 6.8, data['job_title'] or "")  # employee title
     checking_length(data['job_title'], 11.1, 6.8, pdf)
     pdf.set_font_size(9)
-    pdf.text(16, 6.8, str(data['hours_per_week']) or "")  # No of hours
+    pdf.text(18.6, 6.8, str(data['hours_per_week']) or "")  # No of hours
     pdf.text(1.4, 8.3, data['date_of_birth'])  # Date of birth
     pdf.text(6.25, 8.3, data['gender'])  # Gender
     pdf.text(1.4, 10.8, data['street_address_line1'])  # Address line 1
@@ -395,7 +423,7 @@ def first_page(data, versionNo):
             pdf.multi_cell(5.9, cell_height, cp_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             pdf.multi_cell(4.5, cell_height, cp_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-            pdf.multi_cell(3.3, cell_height, f"C:${cp_plan['companyShare']} E:${cp_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+            # pdf.multi_cell(3.3, cell_height, f"C:${cp_plan['companyShare']} E:${cp_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
                 pdf.ln(cell_height * 1.7)
             else:
@@ -404,16 +432,16 @@ def first_page(data, versionNo):
                 pdf.set_x(1.6)
                 pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
                 pdf.multi_cell(4.5, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(1.6, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(1.6, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(3.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 total_cell_x = pdf.get_x()
-                pdf.multi_cell(2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(2.2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 pdf.ln(cell_height)
 
         if pdf.get_y() < 21.38:
             pdf.set_x(total_cell_x)
-            pdf.multi_cell(2, cell_height, f"${data['cp_totalAmount']}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+            pdf.multi_cell(2.2, cell_height, f"{process_input(data['cp_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
 
             # elif "cc_plans" in plan:
     pdf.set_y(y_cc)
@@ -441,7 +469,7 @@ def first_page(data, versionNo):
             pdf.multi_cell(5.9, cell_height, cc_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             pdf.multi_cell(4.5, cell_height, cc_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-            pdf.multi_cell(3.3, cell_height, f"C:${cc_plan['companyShare']} E:${cc_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+            # pdf.multi_cell(3.3, cell_height, f"C:${cc_plan['companyShare']} E:${cc_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
                 pdf.ln(cell_height * 1.6)
             else:
@@ -451,18 +479,28 @@ def first_page(data, versionNo):
                 pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
                 pdf.multi_cell(4.5, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
                 pdf.multi_cell(1.6, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(1.6, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(1.7, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 total_cell_x = pdf.get_x()
-                pdf.multi_cell(2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(1.9, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(1.6, cell_height, f"{process_input(cc_plan['companyShare'])}", border=border, align='R', new_x="RIGHT",
+                               new_y="TOP")
+                pdf.multi_cell(1.6, cell_height, f"{process_input(cc_plan['employeeShare'])}", border=border, align='R', new_x="RIGHT",
+                               new_y="TOP")
                 pdf.ln(cell_height)
 
         if pdf.get_y() > 25.56:
-            pdf.set_y(25.3)
+            pdf.set_y(25.44)
 
         if pdf.get_y() < 25.9:
             pdf.set_x(total_cell_x)
-            pdf.multi_cell(2, cell_height, f"${data['cc_totalAmount']}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+            pdf.multi_cell(1.9, 0.5, f"{process_input(data['cc_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+            pdf.multi_cell(1.6, 0.5, f"{process_input(data['companyShareCC']['totalContribution'])}", border="TB", align='R',
+                           new_x="RIGHT",
+                           new_y="TOP")
+            pdf.multi_cell(1.6, 0.5, f"{process_input(data['employeeShareCC']['totalContribution'])}", border="TB", align='R',
+                           new_x="RIGHT",
+                           new_y="TOP")
 
             # elif "ep_plans" in plan:
     pdf.add_page()
@@ -492,7 +530,7 @@ def first_page(data, versionNo):
 
             pdf.multi_cell(4.5, cell_height, ep_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-            pdf.multi_cell(3.3, cell_height, f"C:${ep_plan['companyShare']} E:${ep_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+            # pdf.multi_cell(3.3, cell_height, f"C:${ep_plan['companyShare']} E:${ep_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
                 pdf.ln(cell_height * 1.6)
             else:
@@ -501,16 +539,16 @@ def first_page(data, versionNo):
                 pdf.set_x(1.6)
                 pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
                 pdf.multi_cell(4.5, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(1.6, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(1.6, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(3.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 total_cell_x = pdf.get_x()
-                pdf.multi_cell(2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(2.2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 pdf.ln(cell_height)
 
         if pdf.get_y() < 6.93:
             pdf.set_x(total_cell_x)
-            pdf.multi_cell(2, cell_height, f"${data['ep_totalAmount']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+            pdf.multi_cell(2.2, cell_height, f"{process_input(data['ep_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
 
         # quit(0)
 
@@ -524,10 +562,21 @@ def first_page(data, versionNo):
     if data['disclouseradvisor'] is True:  # advisor disclosure
         pdf.text(11.05, 8.1, u'\u2713')
     pdf.set_font('dejavu', '', 9)
-    # pdf.image(data['companyLogo'], 15, 0.7, 3, 2)
+    if 'companyLogo' in data:
+        if data['companyLogo'] is not None and data['companyLogo'] != "":
+            try:
+                pdf.image(data['companyLogo'], 15, 0.7, 3, 1.5)
+            except:
+                print(f"Company Logo not found in {data['companyLogo']}")
     pdf.text(1.4, 9.65, data['paymentMethod'])  # payment method
     pdf.text(11.1, 9.65, data['planEnrollmentDate'])  # enrollment date
-    pdf.text(1.4, 11.1, data['advisorName'])  # advisor name
+    if "advisor" in data:
+        if data['advisor'] != "":
+            pdf.text(1.4, 11.1, data['advisor'])
+        else:
+            pdf.text(1.4, 11.1, data['advisorName'])
+    else:
+        pdf.text(1.4, 11.1, data['advisorName'])  # advisor name
     if data['signature'] is not None and 'data:image/png;base64,' in data['signature']:
         signature_file_name = f'signature_{data["first_name"]}_{data["date_of_birth"]}.png'
         signature(data['signature'].split(',')[1], signature_file_name)
@@ -575,7 +624,7 @@ def merging_pdf(child_second_page, data):
                 application_path = os.path.dirname(sys.executable)
             elif __file__:
                 application_path = os.path.dirname(__file__)
-            templateFilePath = os.path.join(application_path, "template_corporate_employee.pdf")
+            templateFilePath = os.path.join(application_path, "template_corporate_employee_v2.pdf")
             copyFile = f'{application_path}/corporate_enrollment_template_{data["first_name"]}_{data["date_of_birth"]}.pdf'
             shutil.copy2(templateFilePath, copyFile)
         except:
@@ -650,33 +699,21 @@ logging.getLogger("fpdf2").setLevel(logging.ERROR)
 
 
 # String version
-# json_encoded_string = sys.argv[1]
-# json_decoded_string = unquote(json_encoded_string)
-# data = json.loads(json_decoded_string)
+json_encoded_string = sys.argv[1]
+json_decoded_string = unquote(json_encoded_string)
+data = json.loads(json_decoded_string)
 
 # File version
-json_file = sys.argv[1]
-with open(json_file, 'r') as myFile:
-    json_file = myFile.read()
-data = json.loads(json_file)
+# json_file = sys.argv[1]
+# with open(json_file, 'r') as myFile:
+#     json_file = myFile.read()
+# data = json.loads(json_file)
 
-versionNo = "v2.0"
+versionNo = "v2.1.1"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
 first_page(data, versionNo)
 
-# if (int(len(data['children_details'])) > 6) or (int(len(data['plans'])) > 3):
-#     second_page(data)
-
-
-# 18 - 12, 21 - 11, 22-10, 24 - 9, >24 split into 2
-# dependent information - put count
-# If dependents increase more than 3 then put on the next page
-# pricing needs to be in a table (rework)
-# Next page
-# json string
-
-# key - process - with values normal, update/updateSignature
-# check if there is a key called process.
+# TODO: Don't throw any error if the information is not found and generate the ROE

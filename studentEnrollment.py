@@ -272,7 +272,7 @@ def studentForm(data):
             # pdf.set_font('dejavu', '', child_gender_font)
             # pdf.text(15.6, y_child, child['gender'])
             pdf.set_x(15.7)
-            pdf.multi_cell(w=2.05, h=0.7, txt=child['gender'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=2.05, h=0.7, text=child['gender'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
             pdf.set_font('dejavu', '', radio_font)
             if 'isFullTimeStudent' in child:
                 if child['isFullTimeStudent'] is True:
@@ -296,20 +296,20 @@ def studentForm(data):
         for plan in data['plans']:
             pdf.set_font('dejavu', '', primary_font)
             pdf.set_x(x_plan)
-            pdf.multi_cell(w=7.25, h=h_plan_cell, txt=plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=7.25, h=h_plan_cell, text=plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
             pdf.ln(h_plan_cell * 0.8)
             planProducts = plan['products']
             for product in planProducts:
                 pdf.set_x(x_product)
-                pdf.multi_cell(w=6.75, h=h_plan_cell, txt=product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=6.75, h=h_plan_cell, text=product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
                 if 'planCoverage' in product:
                     coverage = product['planCoverage']
                 else:
                     coverage = data['coverageType']
-                pdf.multi_cell(w=2.55, h=h_plan_cell, txt=coverage, border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-                pdf.multi_cell(w=1.94, h=h_plan_cell, txt=f"${processInput(product['price'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-                pdf.multi_cell(w=1.83, h=h_plan_cell, txt=f"${processInput(product['tax'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-                pdf.multi_cell(w=2.04, h=h_plan_cell, txt=f"${processInput(product['total'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=2.55, h=h_plan_cell, text=coverage, border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=1.94, h=h_plan_cell, text=f"${processInput(product['price'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=1.83, h=h_plan_cell, text=f"${processInput(product['tax'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=2.04, h=h_plan_cell, text=f"${processInput(product['total'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
                 pdf.ln(h_plan_cell)
 
             # if pdf.get_string_width(plan['planName']) > 5.772:
@@ -320,14 +320,14 @@ def studentForm(data):
 
         pdf.set_x(12.5)
         pdf.set_font('helvetica', 'B', primary_font)
-        pdf.multi_cell(w=2.5, h=h_plan_cell, txt='Total', border='TB', align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+        pdf.multi_cell(w=2.5, h=h_plan_cell, text='Total', border='TB', align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
         pdf.set_font('dejavu', '', primary_font)
         if 'totalPremium' in data:
-            pdf.multi_cell(w=1.94, h=h_plan_cell, txt=f"${processInput(data['totalPremium'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=1.94, h=h_plan_cell, text=f"${processInput(data['totalPremium'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
         if 'totalTax' in data:
-            pdf.multi_cell(w=1.83, h=h_plan_cell, txt=f"${processInput(data['totalTax'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=1.83, h=h_plan_cell, text=f"${processInput(data['totalTax'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
         if 'totalAmount' in data:
-            pdf.multi_cell(w=2.06, h=h_plan_cell, txt=f"${processInput(data['totalAmount'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=2.06, h=h_plan_cell, text=f"${processInput(data['totalAmount'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
 
     # ------ Third Page --------
     pdf.add_page()
@@ -375,7 +375,7 @@ def studentForm(data):
     y_ds = 7.9
     pdf.set_y(y_ds)
     pdf.set_x(x_ds)
-    pdf.cell(w=3.22, h=1.24, txt=data['dateSigned'], border=0, align='C')
+    pdf.cell(w=3.22, h=1.24, text=data['dateSigned'], border=0, align='C')
 
     # Signature
     if data['signature'] is not None and 'data:image/png;base64,' in data['signature']:
