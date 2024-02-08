@@ -153,11 +153,15 @@ def first_page(data):
     else:
         pdf.text(6.2, 15.5, "Yes")
 
-    if "workingProvince" in data:
-        pdf.set_y(16.6)
+    if "workingProvinceList" in data:
+        if pdf.get_string_width(", ".join(province.strip() for province in data['workingProvinceList'])) > 23.8:
+            pdf.set_font_size(7)
+        else:
+            pdf.set_font_size(8)
+        pdf.set_y(16.4)
         pdf.set_x(1.3)
-        pdf.multi_cell(9.3, 1, data['workingProvince'], border=0, max_line_height=0.5)
-
+        pdf.multi_cell(9.3, 1, ", ".join(province.strip() for province in data['workingProvinceList']), border=0,
+                       max_line_height=0.5)
     pdf.set_font_size(7)
     pdf.set_text_color(0, 0, 255)
     pdf.set_y(20.52)
@@ -560,17 +564,17 @@ def update_pdf(data):
 
 
 # String version
-# json_encoded_string = sys.argv[1]
-# json_decoded_string = unquote(json_encoded_string)
-# jsonData = json.loads(json_decoded_string)
+json_encoded_string = sys.argv[1]
+json_decoded_string = unquote(json_encoded_string)
+jsonData = json.loads(json_decoded_string)
 
 # File version
-json_file = sys.argv[1]
-with open(json_file, 'r') as myFile:
-    json_file = myFile.read()
-jsonData = json.loads(json_file)
+# json_file = sys.argv[1]
+# with open(json_file, 'r') as myFile:
+#     json_file = myFile.read()
+# jsonData = json.loads(json_file)
 
-versionNo = "v2.4"
+versionNo = "v2.4.1"
 pdf = FPDF('P', 'cm', 'letter')
 
 if "process" in jsonData:
