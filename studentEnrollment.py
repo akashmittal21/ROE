@@ -50,7 +50,7 @@ def studentForm(data):
             application_path = os.path.dirname(sys.executable)
         elif __file__:
             application_path = os.path.dirname(__file__)
-        fontPath = os.path.join(application_path, "MyraidPro.ttf")
+            fontPath = os.path.join(application_path, "MyraidPro.ttf")
         questionFont = f'{application_path}/MyraidPro_{data["firstName"]}_{data["lastName"]}.ttf'
         shutil.copy2(fontPath, questionFont)
     except:

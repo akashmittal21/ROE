@@ -324,7 +324,6 @@ def first_page(data, versionNo):
                 plan_counter += 1
                 plan_line_counter += 1
                 pdf.set_x(x_plan)
-                print(plan['planname'])
                 pdf.multi_cell(7.8, cell_height, plan["planname"], border=border, align='L',new_x="RIGHT", new_y= "TOP")
                 pdf.multi_cell(5.7, cell_height, exec_string.strip(), border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45)
 
