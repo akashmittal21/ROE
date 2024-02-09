@@ -1,17 +1,38 @@
 import json
 import sys
 import base64
-import warnings
+import requests
 from fpdf import FPDF
 from PyPDF2 import PdfWriter, PdfReader, PdfMerger
 import os.path
 import shutil
 from PIL import Image
 from io import BytesIO
-import logging
+import datetime
 from urllib.parse import unquote
+# from datetime import datetime
 
-#TODO: Need to write the code so that when the text goes out of its dedicated width it needs to adjust the font till the text is in the given width
+# TODO: Need to write the code so that when the text goes out of its dedicatied width it needs to adjust the font till the text is in the given width
+
+
+
+def convert_date_format(input_date):
+    try:
+        date_obj = datetime.datetime.strptime(input_date, "%Y-%m-%d")
+        formatted_date = date_obj.strftime("%m/%d/%Y")
+
+        return formatted_date
+    except ValueError:
+        return "Invalid date format. Please provide a date in the YYYY-MM-DD format."
+
+
+def get_image_data(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.content
+    else:
+        raise Exception(f"Failed to fetch image data from {url}")
+
 
 def processInput(input_value, inputType):
     if inputType.lower() == "price":
@@ -38,10 +59,10 @@ def signature(string, fileName):
     image = image.resize((max_width, max_height))
     image.save(fileName, format='PNG')
 
-    # img_file = open(fileName, 'wb')
-    # img_file.write(decoded_data)
-    # img_file.close()
-    # quit(0)
+
+def capitalize_first_letter(input_string):
+    result = input_string.title()
+    return result
 
 
 def studentForm(data):
@@ -50,12 +71,12 @@ def studentForm(data):
             application_path = os.path.dirname(sys.executable)
         elif __file__:
             application_path = os.path.dirname(__file__)
-            fontPath = os.path.join(application_path, "MyraidPro.ttf")
+        fontPath = os.path.join(application_path, "MyraidPro.ttf")
         questionFont = f'{application_path}/MyraidPro_{data["firstName"]}_{data["lastName"]}.ttf'
         shutil.copy2(fontPath, questionFont)
     except:
         print(f"ERROR: ttf file not found {questionFont}")
-        
+
     try:
         if getattr(sys, 'frozen', False):
             application_path = os.path.dirname(sys.executable)
@@ -77,24 +98,43 @@ def studentForm(data):
     # for circle
     # pdf.text(10.3, 1, u'\u25CF')
 
-    # Student VIP Logo
-    # w_image = 3
-    # h_image = w_image * 183 / 275
-    # pdf.image("studentVIPLOGO.png", 0.5, 0, w_image, h_image)
+    if "brokerLogo" in data:
+        try:
+            image_url = data['brokerLogo']
+            image_data = get_image_data(image_url)
+            image = Image.open(BytesIO(image_data))
+            original_width, original_height = image.size
 
-    pdf.text(5.6, 5.85, data['associationName'])  # University Name
+            if "ausu" in data['brokerLogo']:
+                width = 4
+                height = width * original_height / original_width
+                pdf.image(image, 0.9, 0.9, width, height)
+            else:
+                width = 3.5
+                height = width * original_height / original_width
+                pdf.image(image, 0.9, 1.1, width, height)
+        except:
+            print(f"Error! Please check the Image Link: {data['brokerLogo']}")
+            pass
+
+    pdf.text(5.6, 5.85, capitalize_first_letter(data['associationName']))  # University Name
 
     # Member Information
-    pdf.text(5.6, 7.4, data['lastName'])  # Last Name
+    pdf.text(5.6, 7.4, capitalize_first_letter(data['lastName']))  # Last Name
     if 'middleInitial' in data:
         pdf.text(12.3, 7.4, data['middleInitial'])  # Middle Initial
-    pdf.text(14.85, 7.4, data['firstName'])  # First Name
-    pdf.text(16.4, 8.85, data['dateOfBirth'])  # Date of Birth
-    pdf.text(16.4, 9.7, data['planEnrollmentDate'])  # Plan enrollment date
+    pdf.text(14.85, 7.4, capitalize_first_letter(data['firstName']))  # First Name
+
+    pdf.text(16.4, 8.85, convert_date_format(data['dateOfBirth']))  # Date of Birth
+    pdf.text(16.4, 9.7, convert_date_format(data['planEnrollmentDate']))  # Plan enrollment date
     if 'studentId' in data:
         pdf.text(7.7, 9.7, data['studentId'])
-    pdf.text(5.6, 10.95, data['homeAddress'])  # Home Address
-    pdf.text(15.45, 10.95, data['city'])  # City
+    homeAddress = data['homeAddress']
+    if "street_address_line2" in data:
+        if data['street_address_line2'].strip() == "":
+            homeAddress = homeAddress.strip()[:-1]
+    pdf.text(5.6, 10.95, capitalize_first_letter(homeAddress))  # Home Address
+    pdf.text(15.45, 10.95, capitalize_first_letter(data['city']))  # City
     pdf.text(5.6, 12.17, data['province'])  # Province
     pdf.text(7.5, 12.17, data['postalCode'])  # Postal Code
     pdf.set_font('dejavu', '', 9)
@@ -103,18 +143,25 @@ def studentForm(data):
     if 'cellNumber' in data:
         pdf.text(12.5, 12.17, data['cellNumber'])  # Cell Number
     pdf.text(15.4, 12.17, data['email'])  # Email
-    
+
+    pdf.set_font('dejavu', '', primary_font)
+    if "commonLawDate" in data:
+        if data['commonLawDate'] != "":
+            pdf.text(18.7, 13.4, convert_date_format(data['commonLawDate']))
+
     # This is to fill the question based on if the customer is a foreign student
     pdf.set_font('myraidPro', '', primary_font)
     x_question = 12.9
     y_question = 14.77
-    question = ""
-    if data['isForeignStudent'] is False:
+    # question = ""
+    if isinstance(data['isForeignStudent'], bool) and data['isForeignStudent'] is False or isinstance(data['isForeignStudent'], str) and data['isForeignStudent'].lower() == "false":
         question = "Do you have a Provincial Heath Card?"
-    elif data['isForeignStudent'] is True:
+        pdf.text(x_question, y_question, question)
+    else:
         question = "I confirm that I have UHIP"
         x_question += 1.7
-    pdf.text(x_question, y_question, question)
+        pdf.text(x_question, y_question, question)
+    # pdf.text(x_question, y_question, question)
 
     pdf.set_font('dejavu', '', radio_font)
     gender = data['gender']
@@ -148,7 +195,7 @@ def studentForm(data):
     y_ms = 12.865
     if maritalStatus.lower() == "single":
         pass
-    elif maritalStatus.lower() == "married":
+    elif maritalStatus.lower() == "married" or data['having_spouse'] is True:
         x_ms += 1.92
     elif maritalStatus.lower() == "separated":
         x_ms += 4.14
@@ -162,18 +209,16 @@ def studentForm(data):
         print("ERROR! Please check marital status value")
     pdf.text(x_ms, y_ms, u'\u25CF')
 
-    parentCoverage = "no"
-    x_pc = 13.14
+    parentCoverage = data['coveredParentalHealthInsurance']
+    x_pc = 13.64
     y_pc = 14.048
-    if parentCoverage.lower() == "yes":
+    if isinstance(parentCoverage, bool) and parentCoverage is True or isinstance(parentCoverage, str) and parentCoverage.lower() == "true":
         pass
-    elif parentCoverage.lower() == "no":
-        x_pc += 1.9
     else:
-        print("ERROR! Please check parent coverage value.")
+        x_pc += 1.4
     pdf.text(x_pc, y_pc, u'\u25CF')
-    
-    isForeignStudent = False
+
+    isForeignStudent = data['isForeignStudent']
     x_fs = 9.81
     y_fs = 14.75
     if isForeignStudent is True:
@@ -181,15 +226,32 @@ def studentForm(data):
     else:
         x_fs += 1.42
     pdf.text(x_fs, y_fs, u'\u25CF')
-    
-    hasUhip = False
-    x_tq = 18.8
-    y_tq = 14.75
-    if hasUhip is True:
-        pass
-    else:
-        x_tq += 1.27
-    pdf.text(x_tq, y_tq, u'\u25CF')
+
+    if "hasUhip" in data:
+        hasUhip = data['hasUhip']
+        x_tq = 18.8
+        y_tq = 14.75
+        # if hasUhip is True:
+        #     pass
+        # elif hasUhip is False:
+        #     x_tq += 1.27
+        # else:
+        #     x_tq = 0
+        #     y_tq = 0
+        pdf.text(x_tq, y_tq, u'\u25CF')
+
+    if "hasProvincialCard" in data:
+        hasPC = data['hasProvincialCard']
+        x_tq = 18.8
+        y_tq = 14.75
+        # if hasPC is True:
+        #     pass
+        # elif hasPC is False:
+        #     x_tq += 1.27
+        # else:
+        #     x_tq = 0
+        #     y_tq = 0
+        pdf.text(x_tq, y_tq, u'\u25CF')
 
     coverage = data['coverageType']
     x_coverage = 9.21
@@ -209,14 +271,14 @@ def studentForm(data):
     # Spouse Details
     if data['having_spouse'] is True:
         pdf.set_font('dejavu', '', primary_font)
-        pdf.text(5.6, 21.25, data['spouseDetails']['lastName'])  # Last Name
+        pdf.text(5.6, 21.25, capitalize_first_letter(data['spouseDetails']['lastName']))  # Last Name
         if 'middleInitial' in data['spouseDetails']:
             pdf.text(11.4, 21.25, data['spouseDetails']['middleInitial'])  # Middle Initial
-        pdf.text(14.3, 21.25, data['spouseDetails']['firstName'])  # First Name
-        pdf.text(5.6, 22.62, data['spouseDetails']['dateOfBirth'])  # Date of Birth
+        pdf.text(14.3, 21.25, capitalize_first_letter(data['spouseDetails']['firstName']))  # First Name
+        pdf.text(5.6, 22.62, convert_date_format(data['spouseDetails']['dateOfBirth']))  # Date of Birth
 
         if 'carrierName' in data['spouseDetails']:
-            pdf.text(9.5, 24.75, data['spouseDetails']['carrierName'])
+            pdf.text(9.5, 24.75, capitalize_first_letter(data['spouseDetails']['carrierName']))
 
         pdf.set_font('dejavu', '', radio_font)
         spouse_gender = data['spouseDetails']['gender']
@@ -246,13 +308,14 @@ def studentForm(data):
 
         if 'coverageType' in data['spouseDetails']:
             spouse_coverage = data['spouseDetails']['coverageType']
-            x_sc = 9.39
-            y_sc = 25.6
-            if spouse_coverage.lower() == "single":
-                pass
-            elif spouse_coverage.lower() == "family":
-                x_sc += 1.59
-            pdf.text(x_sc, y_sc, u'\u25CF')
+            if spouse_coverage != "":
+                x_sc = 9.39
+                y_sc = 25.6
+                if spouse_coverage.lower() == "single":
+                    pass
+                elif spouse_coverage.lower() == "family" or spouse_coverage.lower() == "couple":
+                    x_sc += 1.59
+                pdf.text(x_sc, y_sc, u'\u25CF')
 
     # ------ Second Page --------
     pdf.add_page()
@@ -266,19 +329,17 @@ def studentForm(data):
         border = 0
         for child in data['childrenDetails']:
             pdf.set_font('dejavu', '', primary_font)
-            pdf.text(5.5, y_child, child['lastName'])
-            pdf.text(9.7, y_child, child['firstName'])
-            pdf.text(13.45, y_child, child['dateOfBirth'])
-            # pdf.set_font('dejavu', '', child_gender_font)
-            # pdf.text(15.6, y_child, child['gender'])
+            pdf.text(5.5, y_child, capitalize_first_letter(child['lastName']))
+            pdf.text(9.7, y_child, capitalize_first_letter(child['firstName']))
+            pdf.text(13.45, y_child, convert_date_format(child['dateOfBirth']))
             pdf.set_x(15.7)
-            pdf.multi_cell(w=2.05, h=0.7, text=child['gender'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=2.05, h=0.7, txt=child['gender'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
             pdf.set_font('dejavu', '', radio_font)
             if 'isFullTimeStudent' in child:
-                if child['isFullTimeStudent'] is True:
+                if isinstance(child['isFullTimeStudent'], bool) and child['isFullTimeStudent'] is True or isinstance(child['isFullTimeStudent'], str) and child['isFullTimeStudent'].lower() == "true":
                     pdf.text(18.06, y_radio, u'\u25CF')
             if 'isDisabled' in child:
-                if child['isDisabled'] is True:
+                if isinstance(child['isDisabled'], bool) and child['isDisabled'] is True or isinstance(child['isDisabled'], str) and child['isDisabled'].lower() == "true":
                     pdf.text(19.6, y_radio, u'\u25CF')
             y_child += 1.2
             y_radio += 1.2
@@ -296,20 +357,23 @@ def studentForm(data):
         for plan in data['plans']:
             pdf.set_font('dejavu', '', primary_font)
             pdf.set_x(x_plan)
-            pdf.multi_cell(w=7.25, h=h_plan_cell, text=plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=7.25, h=h_plan_cell, txt=plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
             pdf.ln(h_plan_cell * 0.8)
             planProducts = plan['products']
             for product in planProducts:
                 pdf.set_x(x_product)
-                pdf.multi_cell(w=6.75, h=h_plan_cell, text=product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=6.75, h=h_plan_cell, txt=product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
                 if 'planCoverage' in product:
                     coverage = product['planCoverage']
                 else:
                     coverage = data['coverageType']
-                pdf.multi_cell(w=2.55, h=h_plan_cell, text=coverage, border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-                pdf.multi_cell(w=1.94, h=h_plan_cell, text=f"${processInput(product['price'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-                pdf.multi_cell(w=1.83, h=h_plan_cell, text=f"${processInput(product['tax'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-                pdf.multi_cell(w=2.04, h=h_plan_cell, text=f"${processInput(product['total'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                # pdf.set_font('dejavu', '', 9)
+                pdf.multi_cell(w=2.55, h=h_plan_cell, txt=capitalize_first_letter(coverage.replace("_", " ")), border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4,
+                               split_only=False)
+                pdf.set_font('dejavu', '', primary_font)
+                pdf.multi_cell(w=1.94, h=h_plan_cell, txt=f"${processInput(product['price'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=1.83, h=h_plan_cell, txt=f"${processInput(product['tax'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=2.04, h=h_plan_cell, txt=f"${processInput(product['total'], 'price')}", border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
                 pdf.ln(h_plan_cell)
 
             # if pdf.get_string_width(plan['planName']) > 5.772:
@@ -320,62 +384,24 @@ def studentForm(data):
 
         pdf.set_x(12.5)
         pdf.set_font('helvetica', 'B', primary_font)
-        pdf.multi_cell(w=2.5, h=h_plan_cell, text='Total', border='TB', align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+        pdf.multi_cell(w=2.5, h=h_plan_cell, txt='Total', border='TB', align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
         pdf.set_font('dejavu', '', primary_font)
         if 'totalPremium' in data:
-            pdf.multi_cell(w=1.94, h=h_plan_cell, text=f"${processInput(data['totalPremium'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=1.94, h=h_plan_cell, txt=f"${processInput(data['totalPremium'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
         if 'totalTax' in data:
-            pdf.multi_cell(w=1.83, h=h_plan_cell, text=f"${processInput(data['totalTax'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=1.83, h=h_plan_cell, txt=f"${processInput(data['totalTax'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
         if 'totalAmount' in data:
-            pdf.multi_cell(w=2.06, h=h_plan_cell, text=f"${processInput(data['totalAmount'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
+            pdf.multi_cell(w=2.06, h=h_plan_cell, txt=f"${processInput(data['totalAmount'], 'price')}", border='TB', align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
 
     # ------ Third Page --------
     pdf.add_page()
     pdf.set_font('dejavu', '', primary_font)
 
-    # if len(data['beneficiaries']) > 0:
-    #     x_pb = 5.35
-    #     y_pb = 1.9
-    #     h_pb_cell = 0.6
-    #     pdf.set_y(y_pb)
-    #     border = 0
-    #     for pb in data['beneficiaries']:
-    #         if pb['type'].lower() == "primary":
-    #             pdf.set_x(x_pb)
-    #             pdf.multi_cell(w=3.1, h=h_pb_cell, txt=pb['lastName'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=3.75, h=h_pb_cell, txt=pb['firstName'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=0.9, h=h_pb_cell, txt=f"{processInput(pb['age'], 'misc')}", border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=2.23, h=h_pb_cell, txt=f"{processInput(pb['percentage'], 'misc')}%", border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=2.75, h=h_pb_cell, txt=pb['relationship'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             if "trusteeName" in pb:
-    #                 # pass
-    #                 pdf.multi_cell(w=2.75, h=h_pb_cell, txt=pb['trusteeName'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.ln(1.17)
-    # 
-    # if len(data['beneficiaries']) > 0:
-    #     x_cb = 5.35
-    #     y_cb = 8.3
-    #     h_cb_cell = 0.6
-    #     pdf.set_y(y_cb)
-    #     border = 0
-    #     for cb in data['beneficiaries']:
-    #         if cb['type'].lower() == "contingent":
-    #             pdf.set_x(x_cb)
-    #             pdf.multi_cell(w=3.1, h=h_cb_cell, txt=cb['lastName'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=3.75, h=h_cb_cell, txt=cb['firstName'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=0.9, h=h_cb_cell, txt=f"{processInput(cb['age'], 'misc')}", border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=2.23, h=h_cb_cell, txt=f"{processInput(cb['percentage'], 'misc')}%", border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.multi_cell(w=2.75, h=h_cb_cell, txt=cb['relationship'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             if "trusteeName" in pb:
-    #                 # pass
-    #                 pdf.multi_cell(w=2.75, h=h_pb_cell, txt=cb['trusteeName'], border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.4, split_only=False)
-    #             pdf.ln(1.17)
-
     x_ds = 17.5
     y_ds = 7.9
     pdf.set_y(y_ds)
     pdf.set_x(x_ds)
-    pdf.cell(w=3.22, h=1.24, text=data['dateSigned'], border=0, align='C')
+    pdf.cell(w=3.22, h=1.24, txt=convert_date_format(data['dateSigned']), border=0, align='C')
 
     # Signature
     if data['signature'] is not None and 'data:image/png;base64,' in data['signature']:
@@ -538,7 +564,7 @@ with open(json_file, 'r') as myFile:
     json_file = myFile.read()
 jsonData = json.loads(json_file)
 
-versionNo = "v1.0"
+versionNo = "v1.12"
 pdf = FPDF('P', 'cm', 'letter')
 
 studentForm(jsonData)
