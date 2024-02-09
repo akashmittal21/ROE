@@ -4,11 +4,13 @@ import base64
 import warnings
 import re
 from fpdf import FPDF
-from PyPDF2 import PdfWriter, PdfReader
+from PyPDF2 import PdfWriter, PdfReader, PdfMerger
 import os.path
 import shutil
 import logging
 from urllib.parse import unquote
+
+from equitable_roe import generate_equitable_roe
 
 
 def warn(*args, **kwargs):
@@ -483,6 +485,10 @@ def first_page(data, versionNo):
     pdf2.output(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
     os.remove(tempFont)
 
+    if "attachEquitableForm" in data:
+        if data.get("attachEquitableForm") is True:
+            generate_equitable_roe(data, "member")
+
     merging_pdf(child_second_page, plan_second_page, data)
 
 
@@ -539,6 +545,15 @@ def merging_pdf(child_second_page, plan_second_page, data):
         if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
             file3.close()
             os.remove(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
+
+            if "attachEquitableForm" in data:
+                if data.get("attachEquitableForm") is True:
+                    filenames = [output_path, f"equitable_{data['first_name']}_{data['date_of_birth']}.pdf"]
+                    merger = PdfMerger()
+                    for file in filenames:
+                        merger.append(PdfReader(open(file, 'rb')))
+                    merger.write(output_path)
+                    os.remove(filenames[1])
     except Exception as e:
         print(f"ERROR: {e}")
 
@@ -566,17 +581,17 @@ logging.getLogger("fpdf2").setLevel(logging.ERROR)
 
 
 # String version
-# json_encoded_string = sys.argv[1]
-# json_decoded_string = unquote(json_encoded_string)
-# data = json.loads(json_decoded_string)
+json_encoded_string = sys.argv[1]
+json_decoded_string = unquote(json_encoded_string)
+data = json.loads(json_decoded_string)
 
 # File version
-json_file = sys.argv[1]
-with open(json_file, 'r') as myFile:
-    json_file = myFile.read()
-data = json.loads(json_file)
+# json_file = sys.argv[1]
+# with open(json_file, 'r') as myFile:
+#     json_file = myFile.read()
+# data = json.loads(json_file)
 
-versionNo = "v2"
+versionNo = "v2.1"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')

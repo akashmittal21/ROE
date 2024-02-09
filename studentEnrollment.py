@@ -10,6 +10,10 @@ from PIL import Image
 from io import BytesIO
 import datetime
 from urllib.parse import unquote
+
+from equitable_roe import generate_equitable_roe
+
+
 # from datetime import datetime
 
 # TODO: Need to write the code so that when the text goes out of its dedicatied width it needs to adjust the font till the text is in the given width
@@ -413,6 +417,11 @@ def studentForm(data):
     pdf.output(f'dummy_{data["firstName"]}_{data["lastName"]}.pdf')
     os.remove(tempFont)
     os.remove(questionFont)
+
+    if "attachEquitableForm" in data:
+        if data.get("attachEquitableForm") is True:
+            generate_equitable_roe(data, "employee")
+
     merging_pdf(data)
 
 
@@ -460,6 +469,15 @@ def merging_pdf(data):
 
     os.remove(f'dummy_{data["firstName"]}_{data["lastName"]}.pdf')
     os.remove(copyFile)
+
+    if "attachEquitableForm" in data:
+        if data.get("attachEquitableForm") is True:
+            filenames = [output_path, f"equitable_{data['first_name']}_{data['date_of_birth']}.pdf"]
+            merger = PdfMerger()
+            for file in filenames:
+                merger.append(PdfReader(open(file, 'rb')))
+            merger.write(output_path)
+            os.remove(filenames[1])
 
     # except Exception as e:
     #     print(f"ERROR: {e}")
@@ -554,17 +572,17 @@ def merging_pdf(data):
 
 
 # String version
-# json_encoded_string = sys.argv[1]
-# json_decoded_string = unquote(json_encoded_string)
-# jsonData = json.loads(json_decoded_string)
+json_encoded_string = sys.argv[1]
+json_decoded_string = unquote(json_encoded_string)
+jsonData = json.loads(json_decoded_string)
 
 # File version
-json_file = sys.argv[1]
-with open(json_file, 'r') as myFile:
-    json_file = myFile.read()
-jsonData = json.loads(json_file)
+# json_file = sys.argv[1]
+# with open(json_file, 'r') as myFile:
+#     json_file = myFile.read()
+# jsonData = json.loads(json_file)
 
-versionNo = "v1.12"
+versionNo = "v2.0"
 pdf = FPDF('P', 'cm', 'letter')
 
 studentForm(jsonData)

@@ -4,11 +4,13 @@ import base64
 import warnings
 import re
 from fpdf import FPDF
-from PyPDF2 import PdfWriter, PdfReader
+from PyPDF2 import PdfWriter, PdfReader, PdfMerger
 import os.path
 import shutil
 import logging
 from urllib.parse import unquote
+
+from equitable_roe import generate_equitable_roe
 
 
 def warn(*args, **kwargs):
@@ -242,12 +244,18 @@ def first_page(data, versionNo):
             dependent_line_counter += 1
         y += 0.45
 
+    if "workingProvince" in data:
+        pdf.set_y(7.7)
+        pdf.set_x(11)
+        pdf.set_font_size(9)
+        pdf.multi_cell(2.5, 1, data.get("workingProvince"), border=1, max_line_height=0.4)
+
     # 4 different check marks in the form
     pdf.set_font('dejavu', '', 11)
     if data['working_20hours'] is True:  # working 20 hours
-        pdf.text(11.05, 8, u'\u2713')
+        pdf.text(13.8, 7.86, u'\u2713')
     if data['provincial_health_coverage'] is True:  # checking for provincial health coverage
-        pdf.text(11.05, 8.68, u'\u2713')
+        pdf.text(13.8, 8.65, u'\u2713')
 
     # Dependent Information
 
@@ -421,8 +429,8 @@ def first_page(data, versionNo):
 
             pdf.set_x(1.3)
             pdf.multi_cell(5.9, cell_height, cp_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-            pdf.multi_cell(4.5, cell_height, cp_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-            pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
+            pdf.multi_cell(6.1, cell_height, cp_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+            # pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
             # pdf.multi_cell(3.3, cell_height, f"C:${cp_plan['companyShare']} E:${cp_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
                 pdf.ln(cell_height * 1.7)
@@ -431,8 +439,8 @@ def first_page(data, versionNo):
             for product in cp_plan['products']:
                 pdf.set_x(1.6)
                 pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(4.5, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(3.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(6.4, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf.multi_cell(1.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 pdf.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 total_cell_x = pdf.get_x()
@@ -528,8 +536,8 @@ def first_page(data, versionNo):
                 ep_exec_string = f"{ep_plan['details']}"
                 lineBreak = False
 
-            pdf.multi_cell(4.5, cell_height, ep_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-            pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
+            pdf.multi_cell(6.1, cell_height, ep_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+            # pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
             # pdf.multi_cell(3.3, cell_height, f"C:${ep_plan['companyShare']} E:${ep_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
                 pdf.ln(cell_height * 1.6)
@@ -538,8 +546,8 @@ def first_page(data, versionNo):
             for product in ep_plan['products']:
                 pdf.set_x(1.6)
                 pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(4.5, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(3.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(6.4, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf.multi_cell(1.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 pdf.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 total_cell_x = pdf.get_x()
@@ -611,6 +619,9 @@ def first_page(data, versionNo):
     # pdf2.output(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
     os.remove(tempFont)
 
+    if "attachEquitableForm" in data:
+        if data.get("attachEquitableForm") is True:
+            generate_equitable_roe(data, "employee")
     merging_pdf(child_second_page, data)
 
 
@@ -624,7 +635,7 @@ def merging_pdf(child_second_page, data):
                 application_path = os.path.dirname(sys.executable)
             elif __file__:
                 application_path = os.path.dirname(__file__)
-            templateFilePath = os.path.join(application_path, "template_corporate_employee_v2.pdf")
+            templateFilePath = os.path.join(application_path, "template_corporate_employee_v2.1.pdf")
             copyFile = f'{application_path}/corporate_enrollment_template_{data["first_name"]}_{data["date_of_birth"]}.pdf'
             shutil.copy2(templateFilePath, copyFile)
         except:
@@ -669,6 +680,15 @@ def merging_pdf(child_second_page, data):
         os.remove(f'dummy_{data["first_name"]}_{data["date_of_birth"]}.pdf')
         os.remove(copyFile)
 
+        if "attachEquitableForm" in data:
+            if data.get("attachEquitableForm") is True:
+                filenames = [output_path, f"equitable_{data['first_name']}_{data['date_of_birth']}.pdf"]
+                merger = PdfMerger()
+                for file in filenames:
+                    merger.append(PdfReader(open(file, 'rb')))
+                merger.write(output_path)
+                os.remove(filenames[1])
+
         # if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
         #     file3.close()
         #     os.remove(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
@@ -709,7 +729,7 @@ data = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # data = json.loads(json_file)
 
-versionNo = "v2.1.1"
+versionNo = "v2.2"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')

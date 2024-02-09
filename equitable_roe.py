@@ -19,16 +19,199 @@ def signature(string, fileName):
     image.save(fileName, format='PNG')
 
 
+def convert_date_format(date_string):
+    # Split the date string by '-'
+    parts = date_string.split('-')
 
-def first_page(data, pdf):
+    # Rearrange the parts in MM/DD/YYYY format
+    mm_dd_yyyy = f"{parts[1]}/{parts[2]}/{parts[0]}"
 
+    return mm_dd_yyyy
+
+
+def get_member_details(data, ctype):
+    member = {
+        "first_name": "",
+        "last_name": "",
+        "date_of_birth": "",
+        "hours_per_week": "",
+        "email": "",
+        "job_title": "",
+        "date_of_hiring": "",
+        "gender": "",
+        "street_address_line1": "",
+        "street_address_line2": "",
+        "having_spouse": "",
+        "dependant_carrier1_check": False,
+        "dependant_carrier1": "",
+        "dependant_carrier2_check": False,
+        "dependant_carrier2": "",
+        "province": "",
+        "city": "",
+        "postal_code": "",
+        "language": "",
+        "planCoverage": "",
+        "planName": "",
+        "spouseInformation": {},
+        "dependantInformation": [],
+        "dateSigned": "",
+        "signature": ""
+    }
+
+    if ctype.lower() != "athabasca":
+        member["first_name"] = data.get("first_name")
+        member["last_name"] = data.get("last_name")
+        member["date_of_birth"] = data.get("date_of_birth")
+        member["gender"] = data.get("gender")
+        member["email"] = data.get("email")
+        member["hours_per_week"] = data.get("hours_per_week")
+        member["street_address_line1"] = data.get("street_address_line1")
+        member["street_address_line2"] = data.get("street_address_Line2")
+        member["city"] = data.get("city")
+        member["province"] = data.get("province")
+        member["postal_code"] = data.get("postal_code")
+        member["having_spouse"] = data.get("having_spouse")
+        member["date_of_hiring"] = data.get("date_of_hiring")
+        member["spouseInformation"] = data.get("spouse_details")
+        member["dependantInformation"] = data.get("children_details")
+        member["signature"] = data.get("signature")
+        member["job_title"] = data.get("job_title")
+        member["dateSigned"] = data.get("planEnrollmentDate")
+        plans = data.get("plans")
+        for plan in plans:
+            products = plan.get("products")
+            if "all-in" in plan.get("planname").lower():
+                member["planName"] = plan.get("planname")
+                for product in products:
+                    member["planCoverage"] = product.get("planCoverage")
+                    break
+        if member["province"].lower() == "quebec" or member["province"].lower() == "qc":
+            member["language"] = "French"
+        else:
+            member["language"] = "English"
+        if member["having_spouse"] is True:
+            if data["spouse_details"]["spouse_carrier_name"] is not None:
+                if data["spouse_details"]["spouse_carrier_name"] != "":
+                    member["dependant_carrier1_check"] = True
+                    member["dependant_carrier1"] = data["spouse_details"]["spouse_carrier_name"]
+
+        for child in member["dependantInformation"]:
+            if child.get("child_carrier_name") is not None and child.get("child_carrier_name") != "" and not member["dependant_carrier1_check"]:
+                member["dependant_carrier1_check"] = True
+                member["dependant_carrier1"] = child.get("child_carrier_name")
+            elif child.get("child_carrier_name") is not None and child.get("child_carrier_name") != "" and not member["dependant_carrier2_check"]:
+                member["dependant_carrier2_check"] = True
+                member["dependant_carrier2"] = child.get("child_carrier_name")
+
+    else:
+        member["first_name"] = data.get("firstName")
+        member["last_name"] = data.get("lastName")
+        member["date_of_birth"] = data.get("dateOfBirth")
+        member["gender"] = data.get("gender")
+        member["email"] = data.get("email")
+        member["hours_per_week"] = data.get("hours_per_week")
+        member["street_address_line1"] = data.get("homeAddress")
+        # member["street_address_line2"] = data.get("street_address_Line2")
+        member["city"] = data.get("city")
+        member["province"] = data.get("province")
+        member["postal_code"] = data.get("postalCode")
+        member["having_spouse"] = data.get("having_spouse")
+        member["date_of_hiring"] = data.get("date_of_hiring")
+        member["spouseInformation"] = data.get("spouseDetails")
+        member["dependantInformation"] = data.get("childrenDetails")
+        member["signature"] = data.get("signature")
+        member["job_title"] = data.get("job_title")
+        member["dateSigned"] = data.get("dateSigned")
+        if data['languagePreference'].lower() == "fr":
+            member["language"] = "French"
+        else:
+            member["language"] = "English"
+        member["planCoverage"] = data["coverageType"]
+        spouse_details = data['spouseDetails']
+        member["spouseInformation"]["first_name"] = spouse_details.get('firstName')
+        member["spouseInformation"]["last_name"] = spouse_details.get('lastName')
+        member["spouseInformation"]["date_of_birth"] = spouse_details.get('dateOfBirth')
+        member["spouseInformation"]["gender"] = spouse_details.get('gender')
+        if "carrierName" in spouse_details and spouse_details.get("isInsured") is True:
+            member["dependant_carrier1_check"] = True
+            member["dependant_carrier1"] = spouse_details.get("carrierName")
+        if len(data["childrenDetails"]) > 0:
+            for dependant in data['childrenDetails']:
+                dependant_info = {
+                    "first_name": dependant.get("firstName"),
+                    "last_name": dependant.get("lastName"),
+                    "date_of_birth": dependant.get("dateOfBirth"),
+                    "gender": dependant.get("gender"),
+                    "enrolledInUniversity": dependant.get("isFullTimeStudent") or False,
+                    "isDisabled": dependant.get("isDisabled") or False,
+                    "graduationDay": ""
+                }
+                member["dependantInformation"].append(dependant_info)
+                if dependant.get("child_carrier_name") is not None and dependant.get("child_carrier_name") != "" and not member["dependant_carrier1_check"]:
+                    member["dependant_carrier1_check"] = True
+                    member["dependant_carrier1"] = dependant.get("child_carrier_name")
+                elif dependant.get("child_carrier_name") is not None and dependant.get("child_carrier_name") != "" and not member["dependant_carrier2_check"]:
+                    member["dependant_carrier2_check"] = True
+                    member["dependant_carrier2"] = dependant.get("child_carrier_name")
+
+    return member
+
+
+def check_sponsor_information(ctype, plan_name, plan_coverage, province):
+    province_list1 = ["British Columbia", "Manitoba", "Saskatchewan", "BC", "MB", "SK"]
+
+    association_details = {
+        "associationName": None,
+        "policyNumber": None,
+        "division": None,
+        "associationClass": None
+    }
+
+    if ctype.lower() == "athabasca":
+        association_details["associationName"] = "The GroupBenefitz Platform Inc. (Athabasca University Voluntary Student Plan)"
+        association_details["policyNumber"] = "815082"
+        association_details["division"] = "001"
+        association_details["associationClass"] = "A"
+    else:
+        association_details["associationName"] = "The GroupBenefitz Platform Inc."
+        association_details["policyNumber"] = "814458"
+        if any(province.lower() in plan_name.lower() for province in province_list1):
+            association_details["division"] = "001"
+            if "gold" in plan_name.lower():
+                association_details["associationClass"] = "A"
+            if "silver" in plan_name.lower():
+                association_details["associationClass"] = "B"
+            if "bronze" in plan_name.lower():
+                association_details["associationClass"] = "C"
+        else:
+            if province.lower() in province_list1:
+                association_details["division"] = "001"
+                if "gold" in plan_name.lower():
+                    association_details["associationClass"] = "A"
+                if "silver" in plan_name.lower():
+                    association_details["associationClass"] = "B"
+                if "bronze" in plan_name.lower():
+                    association_details["associationClass"] = "C"
+            else:
+                association_details["division"] = "002"
+                if "gold" in plan_name.lower():
+                    association_details["associationClass"] = "D"
+                if "silver" in plan_name.lower():
+                    association_details["associationClass"] = "E"
+                if "bronze" in plan_name.lower():
+                    association_details["associationClass"] = "F"
+
+    return association_details
+
+
+def first_page(data, pdf, member_type):
     try:
         if getattr(sys, 'frozen', False):
             application_path = os.path.dirname(sys.executable)
         elif __file__:
             application_path = os.path.dirname(__file__)
         fontPath = os.path.join(application_path, "DejaVuSansCondensed.ttf")
-        tempFont = f'{application_path}/tempfont.ttf'
+        tempFont = f'{application_path}/tempfont_equitable.ttf'
         shutil.copy2(fontPath, tempFont)
     except:
         print(f"ERROR: ttf file not found {fontPath}")
@@ -38,96 +221,181 @@ def first_page(data, pdf):
     pdf.add_page()
     pdf.set_font("dejavu", '', 9)
 
-    # TODO: Add check for Section 1
-    pdf.text(1.25, 8.5, "The Groupbenefitz Platform Inc.")      # Name of PolicyHolder
-    pdf.text(1.25, 9.5, "814458")                                 # Policy Number
-    pdf.text(8, 9.5, "002")
-    pdf.text(14.6, 9.5, "E")
+    member_details = get_member_details(data, member_type)
+    # print(member_details)
 
-    # pdf.text(1.25, 10.5, "Certifcate Number")
+    # Plan Sponsor Section
+    sponsor_information = check_sponsor_information(member_type, member_details.get("planName"), member_details.get("planCoverage"), member_details.get("province"))
+    sponsor_data = data['equitableFormData']
+    pdf.text(1.25, 8.5, sponsor_information.get("associationName"))  # Name of PolicyHolder
+    pdf.text(1.25, 9.5, sponsor_information.get("policyNumber"))  # Policy Number
+    pdf.text(8, 9.5, sponsor_information.get("division"))
+    pdf.text(14.6, 9.5, sponsor_information.get("associationClass"))
+    if sponsor_data.get("certificateNumber") is not None:
+        pdf.text(1.25, 10.5, sponsor_data.get("certificateNumber"))
+    pdf.text(1.25, 11.5, f'{member_details.get("hours_per_week")}')
+    pdf.text(8, 11.5, member_details.get("job_title"))
+    pdf.text(1.25, 12.55, convert_date_format(member_details.get("date_of_hiring")))
 
-    pdf.text(1.25, 11.5, "40")
-    pdf.text(8, 11.5, "Principal")
-    pdf.text(1.25, 12.55, "01/01/2000")
-
-    # TODO: CLean up Section 2
-    pdf.text(1.25, 14.35, f"{data['first_name']} {data['last_name']}")
-    pdf.text(1.25, 15.35, "06/14/1956")
-
-    # TODO: Add check for gender
+    # Plan Member Section
+    pdf.text(1.25, 14.35, f"{member_details.get('first_name')} {member_details.get('last_name')}")
+    pdf.text(1.25, 15.35, convert_date_format(member_details.get("date_of_birth")))
+    # gender
     pdf.set_font_size(8)
-    pdf.text(8.52, 14.92, u'\u2713')
-
-    # TODO: Add check for language
-    pdf.text(15.05, 15.36, u'\u2713')
-
+    if member_details.get("gender").lower() == "male":
+        pdf.text(8.52, 14.92, u'\u2713')
+    elif member_details.get("gender").lower() == "female":
+        pdf.text(10.58, 14.92, u'\u2713')
+    else:
+        pdf.text(8.52, 15.35, u'\u2713')
+        pdf.set_y(14.95)
+        pdf.set_x(12)
+        pdf.multi_cell(2.9, 0.5, member_details.get("gender"), border=0)
+    # language
+    if member_details.get("language").lower() == "english":
+        pdf.text(15.05, 15.36, u'\u2713')
+    else:
+        pdf.text(17.32, 15.36, u'\u2713')
     pdf.set_font_size(9)
-    pdf.text(1.22, 16.35, "39 Prince Rupert Avenue")
-    pdf.text(8.52, 16.35, "Toronto")
-    pdf.text(15.0, 16.35, "Ontario")
-    pdf.text(18.1, 16.35, "M6P 2A8")
-
-    pdf.text(1.22, 17.35, "brendon.hemily@gmail.com")
-
+    pdf.text(1.22, 16.35, member_details.get('street_address_line1'))
+    pdf.text(8.52, 16.35, member_details.get('city'))
+    pdf.text(15.0, 16.35, member_details.get('province'))
+    pdf.text(18.1, 16.35, member_details.get('postal_code'))
+    pdf.text(1.22, 17.35, data.get("email") or "")
     pdf.set_font_size(8)
-    # TODO: Add check for provincial health coverage
-    pdf.text(13.39, 23.26, u'\u2713')
+
+    # Section 4
+    health_coverage_provinces = ["British Columbia", "Manitoba", "Saskatchewan", "BC", "MB", "SK"]
+    if member_details.get("province").lower() in [prov.lower() for prov in health_coverage_provinces]:
+        pdf.text(13.39, 23.26, u'\u2713')
     pdf.set_font_size(9)
 
     # ------ PAGE 2 --------
     pdf.add_page()
-    pdf.set_font_size(8)
-    # TODO: Add check for coverage
-    # pdf.text(1.5, 6.63, u'\u2713')
-    # pdf.text(2.78, 6.63, u'\u2713')
-    pdf.text(1.5, 7.28, u'\u2713')
-    pdf.text(2.78, 7.28, u'\u2713')
+    pdf.set_font_size(9)
+    # Plan Coverage
+    # Single coverage
+    plan_coverage = member_details.get("planCoverage").strip().lower()
+    if plan_coverage == "single":
+        pdf.text(1.5, 6.65, u'\u2713')
+        pdf.text(2.78, 6.65, u'\u2713')
+    # couple coverage
+    elif plan_coverage == "couple":
+        pdf.text(1.5, 7.28, u'\u2713')
+        pdf.text(2.78, 7.28, u'\u2713')
+    # Family coverage
+    else:
+        pdf.text(10.2, 6.65, u'\u2713')
+        pdf.text(11.45, 6.65, u'\u2713')
 
-    # TODO: Add check for spouse insurance info
-    # pdf.text(3.58, 10.6, u'\u2713')
-    pdf.text(4.73, 10.6, u'\u2713')
+    # Dependent insurance check
+    if member_details.get("dependant_carrier1_check") is True:
+        pdf.text(3.56, 10.62, u'\u2713')
+        pdf.set_y(10.7)
+        pdf.set_x(4.2)
+        pdf.multi_cell(6.4, 0.5, member_details.get("dependant_carrier1"), border=0)
+    else:
+        pdf.text(4.73, 10.62, u'\u2713')
+    if member_details.get("dependant_carrier2_check") is True:
+        pdf.text(13.35, 10.62, u'\u2713')
+        pdf.set_y(10.7)
+        pdf.set_x(14.05)
+        pdf.multi_cell(6.4, 0.5, member_details.get("dependant_carrier2"), border=0)
+    else:
+        pdf.text(14.52, 10.62, u'\u2713')
 
     pdf.set_font_size(9)
-    # TODO: Add spouse details
-    pdf.text(1.25, 16.85, "Karen Levy")
-    pdf.text(12.2, 17.3, "04/05/1961")
+    # Spouse Information
+    if member_details.get("having_spouse") is True:
+        spouse_information = member_details.get("spouseInformation")
+        pdf.text(1.25, 16.85, f'{spouse_information.get("first_name")} {spouse_information.get("last_name")}')
+        pdf.text(12.2, 17.3, convert_date_format(spouse_information.get("date_of_birth")))
 
-    # TODO: Add check for spouse gender
-    pdf.set_font_size(8)
-    # pdf.text(16.12, 16.9, u'\u2713')
-    pdf.text(17.42, 16.9, u'\u2713')
+        pdf.set_font_size(9)
+        if spouse_information.get("gender").lower() == "male":
+            pdf.text(16.12, 16.9, u'\u2713')
+        elif spouse_information.get("gender").lower() == "female":
+            pdf.text(17.42, 16.9, u'\u2713')
+        else:
+            pdf.text(16.12, 17.34, u'\u2713')
+            pdf.set_y(17.35)
+            pdf.set_x(16)
+            pdf.multi_cell(4.5, 0.5, spouse_information.get("gender"), border=0)
+
+    pdf.set_font_size(9)
+    # Dependent information
+    if len(member_details.get("dependantInformation")) > 0:
+        y_name = 19.9
+        y_dob = 20.1
+        y_male = 19.13
+        y_female = 19.53
+        y_other = 19.93
+        y_gender = 19.93
+        y_full_time = 19.53
+        y_disabled = 19.93
+        y_grad_date = 20.1
+        y_buffer = 1.55
+        for dependant in member_details.get("dependantInformation"):
+            pdf.text(1.25, y_name, f'{dependant.get("first_name")} {dependant.get("last_name")}')
+            pdf.text(8.4, y_dob, convert_date_format(dependant.get("date_of_birth")))
+            if dependant.get("gender").lower() == "male":
+                pdf.text(10.58, y_male, u'\u2713')
+            elif dependant.get("gender").lower() == "female":
+                pdf.text(10.58, y_female, u'\u2713')
+            else:
+                pdf.text(10.58, y_other, u'\u2713')
+                pdf.set_y(y_gender)
+                pdf.set_x(10.55)
+                pdf.multi_cell(3.7, 0.5, f'{dependant.get("gender")}', border=0)
+            if dependant.get("enrolledInUniversity") is True:
+                pdf.text(14.34, y_full_time, u'\u2713')
+            if dependant.get("isDisabled"):
+                pdf.text(14.34, y_disabled, u'\u2713')
+            if dependant.get("graduationDay") is not None:
+                pdf.text(17.4, y_grad_date, dependant.get("graduationDay"))
+            y_name += y_buffer
+            y_dob += y_buffer
+            y_male += 1.58
+            y_female += 1.58
+            y_other += 1.58
+            y_gender += y_buffer
+            y_full_time += y_buffer
+            y_disabled += y_buffer
+            y_grad_date += y_buffer
 
     pdf.set_font_size(9)
     pdf.add_page()
 
     pdf.add_page()
-    pdf.text(15.2, 5.1, "12/01/2023")
-    signature_base64 = "data:image/png;base64,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"
-    signature_file_name = f'signature.png'  # Need to be updated for generating and updating
-    signature(signature_base64.split(',')[1], signature_file_name)
-    pdf.image(signature_file_name, 1.5, 4.3, 3, 1.2)
+    pdf.text(15.2, 5.1, convert_date_format(member_details.get("dateSigned")))
+    if member_details['signature'] is not None and 'data:image/png;base64,' in member_details['signature']:
+        signature_file_name = f'signature_equitable_{member_details["first_name"]}_{member_details["date_of_birth"]}.png'
+        signature(member_details['signature'].split(',')[1], signature_file_name)
+        pdf.image(signature_file_name, 1.5, 4.3, 3, 1.2)  # signature
+        os.remove(signature_file_name)
 
-    pdf.output('dummy_equitable.pdf')
-    merging_pdf()
+    pdf.output(f'dummy_equitable_{member_details["first_name"]}_{member_details["date_of_birth"]}.pdf')
+    merging_pdf(member_details)
 
-def merging_pdf():
+
+def merging_pdf(member_details):
     writer = PdfWriter()
     try:
-        output_path = f"equitable_sample.pdf"
+        output_path = f"equitable_{member_details['first_name']}_{member_details['date_of_birth']}.pdf"
         try:
             if getattr(sys, 'frozen', False):
                 application_path = os.path.dirname(sys.executable)
             elif __file__:
                 application_path = os.path.dirname(__file__)
             templateFilePath = os.path.join(application_path, "Equitable Life Application Form.pdf")
-            copyFile = f'Temp Equitable Form.pdf'
+            copyFile = f"Temp Equitable Form {member_details['first_name']}_{member_details['date_of_birth']}.pdf"
             shutil.copy2(templateFilePath, copyFile)
         except:
             print(f"ERROR: template.pdf file not found {templateFilePath}")
 
         file1 = open(copyFile, 'rb')
         test1 = PdfReader(file1)
-        file2 = open(f'dummy_equitable.pdf', 'rb')
+        file2 = open(f'dummy_equitable_{member_details["first_name"]}_{member_details["date_of_birth"]}.pdf', 'rb')
         test2 = PdfReader(file2)
 
         no_of_pages = len(test2.pages)
@@ -151,13 +419,13 @@ def merging_pdf():
         file1.close()
         file2.close()
 
-        os.remove(f'dummy_equitable.pdf')
+        os.remove(f'dummy_equitable_{member_details["first_name"]}_{member_details["date_of_birth"]}.pdf')
         os.remove(copyFile)
 
     except Exception as e:
         print(f"ERROR: {e}")
 
 
-def generate_equitable_roe(data):
+def generate_equitable_roe(data, member_type):
     pdf = FPDF('P', 'cm', 'Letter')
-    first_page(data, pdf)
+    first_page(data, pdf, member_type=member_type)
