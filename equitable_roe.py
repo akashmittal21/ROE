@@ -10,13 +10,9 @@ from io import BytesIO
 
 def signature(string, fileName):
     decoded_data = base64.b64decode(string)
-    image = Image.open(BytesIO(decoded_data))
-    original_width, original_height = image.size
-    max_width = 300
-    max_height = 150
-
-    image = image.resize((max_width, max_height), resample=Image.Resampling.LANCZOS)
-    image.save(fileName, format='PNG')
+    img_file = open(fileName, 'wb')
+    img_file.write(decoded_data)
+    img_file.close()
 
 
 def convert_date_format(date_string):
@@ -232,7 +228,7 @@ def first_page(data, pdf, member_type):
     pdf.text(8, 9.5, sponsor_information.get("division"))
     pdf.text(14.6, 9.5, sponsor_information.get("associationClass"))
     if sponsor_data.get("certificateNumber") is not None:
-        pdf.text(1.25, 10.5, sponsor_data.get("certificateNumber"))
+        pdf.text(1.25, 10.5, f'{sponsor_data.get("certificateNumber")}')
     pdf.text(1.25, 11.5, f'{member_details.get("hours_per_week")}')
     pdf.text(8, 11.5, member_details.get("job_title"))
     pdf.text(1.25, 12.55, convert_date_format(member_details.get("date_of_hiring")))
@@ -427,5 +423,6 @@ def merging_pdf(member_details):
 
 
 def generate_equitable_roe(data, member_type):
+    versionNo = "v1.0.1"
     pdf = FPDF('P', 'cm', 'Letter')
     first_page(data, pdf, member_type=member_type)

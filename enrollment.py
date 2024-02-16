@@ -9,6 +9,7 @@ import os.path
 import shutil
 import logging
 from urllib.parse import unquote
+from PIL import Image
 
 from equitable_roe import generate_equitable_roe
 
@@ -571,6 +572,102 @@ def merging_pdf(child_second_page, plan_second_page, data):
     #
     # pdf3.output('enrollment.pdf')
 
+def update_pdf(data):
+    writer = PdfWriter()
+
+    try:
+        input_path = f"{data['filePath']}{data['fileName']}"
+        output_path = f"{data['filePath']}{data['fileName']}"
+        # try:
+        #     if getattr(sys, 'frozen', False):
+        #         application_path = os.path.dirname(sys.executable)
+        #     elif __file__:
+        #         application_path = os.path.dirname(__file__)
+        #     templateFilePath = os.path.join(application_path, input_path)
+        # except:
+        #     print(f"ERROR: template.pdf file not found {templateFilePath}")
+
+        file1 = open(f"{data['filePath']}{data['fileName']}", 'rb')
+        test1 = PdfReader(file1)
+
+        no_of_pages = len(test1.pages)
+
+        try:
+            if getattr(sys, 'frozen', False):
+                application_path = os.path.dirname(sys.executable)
+            elif __file__:
+                application_path = os.path.dirname(__file__)
+            fontPath = os.path.join(application_path, "DejaVuSansCondensed.ttf")
+        except:
+            print(f"ERROR: ttf file not found {fontPath}")
+
+        tempFont = f'{application_path}/DejaVuSansCondensed_{data["fileName"][:-4]}.ttf'
+        shutil.copy2(fontPath, tempFont)
+        # Signature
+        for i in range(no_of_pages):
+            pdf.add_page()
+            if i == 0:
+                if data['signature'] is not None and 'data:image/png;base64,' in data['signature']:
+                    signature_file_name = f'signature_{data["fileName"].split(".")[0]}.png'
+                    # rectangle dimensions in cm
+                    x = 11.2
+                    y = 24.8
+                    w = 3
+                    h = 1.2
+                    # load image from base64
+                    img_data = base64.b64decode(data['signature'].split(',')[1])
+                    with open(signature_file_name, 'wb') as f:
+                        f.write(img_data)
+                    img = Image.open(signature_file_name)
+
+                    # calculate new image dimensions to fit inside rectangle
+                    aspect_ratio = img.width / img.height
+                    new_width = w
+                    new_height = new_width / aspect_ratio
+                    if new_height > h:
+                        new_height = h
+                        new_width = new_height * aspect_ratio
+
+                    # resize image and center it inside the rectangle
+                    x_pos = x + (w - new_width) / 2
+                    y_pos = y + (h - new_height) / 2
+                    # pdf.image(signature_file_name, x_pos, y_pos, new_width , new_height )
+
+                    # signature(data['signature'].split(',')[1], signature_file_name)
+                    pdf.image(signature_file_name, 11.5, 23.3, 2.8, 0.98)
+                    # pdf.rect(11, 23.3, 9.3, 0.98)
+                    os.remove(signature_file_name)
+
+                pdf.add_font('dejavu', '', tempFont)
+                pdf.set_font('dejavu', '', 9)
+                if "first_name" in data and "last_name" in data:
+                    full_name = f"{data['first_name']} {data['last_name']}"
+                    pdf.text(1.4, 5.35, full_name)
+                if "email" in data:
+                    checking_length(data['email'], 1.4, 6.8, pdf)
+        pdf.output(f'dummy_{data["fileName"]}')
+
+        file2 = open(f'dummy_{data["fileName"]}', 'rb')
+        test2 = PdfReader(file2)
+
+        for x in range(no_of_pages):
+            page = test1.pages[x]
+            page1 = test2.pages[x]
+            page.merge_page(page1)
+            writer.add_page(page)
+
+        outputStream = open(output_path, 'wb')
+        writer.write(outputStream)
+        outputStream.close()
+
+        file1.close()
+        file2.close()
+        os.remove(f'dummy_{data["fileName"]}')
+
+    except Exception as e:
+        print(f"ERROR: {e}")
+
+
 
 warnings.warn = warn
 warnings.filterwarnings("ignore", category=UserWarning, message="FFTM NOT subset.*")
@@ -581,21 +678,30 @@ logging.getLogger("fpdf2").setLevel(logging.ERROR)
 
 
 # String version
-json_encoded_string = sys.argv[1]
-json_decoded_string = unquote(json_encoded_string)
-data = json.loads(json_decoded_string)
+# json_encoded_string = sys.argv[1]
+# json_decoded_string = unquote(json_encoded_string)
+# data = json.loads(json_decoded_string)
 
 # File version
-# json_file = sys.argv[1]
-# with open(json_file, 'r') as myFile:
-#     json_file = myFile.read()
-# data = json.loads(json_file)
+json_file = sys.argv[1]
+with open(json_file, 'r') as myFile:
+    json_file = myFile.read()
+data = json.loads(json_file)
 
-versionNo = "v2.1"
+versionNo = "v2.2"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
-first_page(data, versionNo)
+# first_page(data, versionNo)
+
+
+if "process" in data:
+    if data['process'].lower() == "update":
+        update_pdf(data)
+    else:
+        first_page(data, versionNo)
+else:
+    first_page(data, versionNo)
 
 # if (int(len(data['children_details'])) > 6) or (int(len(data['plans'])) > 3):
 #     second_page(data)

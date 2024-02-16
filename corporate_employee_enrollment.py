@@ -178,7 +178,7 @@ def first_page(data, versionNo):
     line_break_width = 0.35
     new_line_width = 0.35
     pdf.add_font('dejavu', '', tempFont, uni=True)
-    # pdf2.add_font('dejavu', '', tempFont)
+    pdf2.add_font('dejavu', '', tempFont)
     pdf.add_page()
     pdf.set_font('dejavu', '', 9)
     if 'companyLogo' in data:
@@ -248,7 +248,7 @@ def first_page(data, versionNo):
         pdf.set_y(7.7)
         pdf.set_x(11)
         pdf.set_font_size(9)
-        pdf.multi_cell(2.5, 1, data.get("workingProvince"), border=1, max_line_height=0.4)
+        pdf.multi_cell(2.5, 1, data.get("workingProvince"), border=0, max_line_height=0.4)
 
     # 4 different check marks in the form
     pdf.set_font('dejavu', '', 11)
@@ -402,10 +402,12 @@ def first_page(data, versionNo):
     y_cc = 23.4
     y_cp = 18.98
     y_ep = 4.53
+    plan_second_page = False
         # for plan in data['plans']:
         #     if "cp_plans" in plan:
     pdf.set_y(y_cp)
     lineBreak = False
+    pdf_cp = pdf
     if len(data['cp_plans']) > 0:
         for cp_plan in data['cp_plans']:
             if "planOptions" in cp_plan:
@@ -427,32 +429,45 @@ def first_page(data, versionNo):
                 cp_exec_string = f"{cp_plan['details']}"
                 lineBreak = False
 
-            pdf.set_x(1.3)
-            pdf.multi_cell(5.9, cell_height, cp_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-            pdf.multi_cell(6.1, cell_height, cp_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+            if pdf_cp.get_y() + (cell_height * 2) > 21.3:
+                if child_second_page is False:
+                    plan_second_page = True
+                    pdf_cp = pdf2
+                    pdf2.add_page()
+                    pdf2.set_y(5.4)
+
+            pdf_cp.set_font('dejavu', '', 7.8)
+            pdf_cp.set_x(1.3)
+            pdf_cp.multi_cell(5.9, cell_height, cp_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+            pdf_cp.multi_cell(6.1, cell_height, cp_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             # pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
             # pdf.multi_cell(3.3, cell_height, f"C:${cp_plan['companyShare']} E:${cp_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
-                pdf.ln(cell_height * 1.7)
+                pdf_cp.ln(cell_height * 2.1)
             else:
-                pdf.ln(cell_height)
+                pdf_cp.ln(cell_height)
             for product in cp_plan['products']:
-                pdf.set_x(1.6)
-                pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(6.4, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(1.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cp.set_x(1.6)
+                pdf_cp.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf_cp.multi_cell(6.4, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                # pdf_cp.multi_cell(6.9, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT",
+                #                   new_y="TOP", max_line_height=0.3)
+                # pdf_cp.multi_cell(5, cell_height, f"Paid by Company", border=border, align='L', new_x="RIGHT",
+                #                   new_y="TOP")
+                pdf_cp.multi_cell(1.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                total_cell_x = pdf.get_x()
-                pdf.multi_cell(2.2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.ln(cell_height)
-
-        if pdf.get_y() < 21.38:
-            pdf.set_x(total_cell_x)
-            pdf.multi_cell(2.2, cell_height, f"{process_input(data['cp_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cp.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                total_cell_x = pdf_cp.get_x()
+                pdf_cp.multi_cell(2.2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cp.ln(cell_height)
+        #
+        # if pdf_cp.get_y() < 21.38:
+        #     pdf_cp.set_x(total_cell_x)
+        #     pdf_cp.multi_cell(2.2, cell_height, f"{process_input(data['cp_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
 
             # elif "cc_plans" in plan:
     pdf.set_y(y_cc)
+    pdf_cc = pdf
     if len(data['cc_plans']) > 0:
         for cc_plan in data['cc_plans']:
             if "planOptions" in cc_plan:
@@ -473,50 +488,61 @@ def first_page(data, versionNo):
             else:
                 cc_exec_string = f"{cc_plan['details']}"
                 lineBreak = False
-            pdf.set_x(1.3)
-            pdf.multi_cell(5.9, cell_height, cc_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-            pdf.multi_cell(4.5, cell_height, cc_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-            pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
+
+            # pdf.line(0, 22, 23, 22)
+            if pdf.get_y() + (cell_height * 2) > 25.8:
+                if child_second_page is False:
+                    if plan_second_page is False:
+                        plan_second_page = True
+                        pdf2.add_page()
+                    pdf_cc = pdf2
+                    pdf2.set_y(11.8)
+
+            pdf_cc.set_font('dejavu', '', 7.8)
+            pdf_cc.set_x(1.3)
+            pdf_cc.multi_cell(5.9, cell_height, cc_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+            pdf_cc.multi_cell(4.5, cell_height, cc_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+            pdf_cc.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
             # pdf.multi_cell(3.3, cell_height, f"C:${cc_plan['companyShare']} E:${cc_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
-                pdf.ln(cell_height * 1.6)
+                pdf_cc.ln(cell_height * 2.2)
             else:
-                pdf.ln(cell_height)
+                pdf_cc.ln(cell_height)
             for product in cc_plan['products']:
-                pdf.set_x(1.6)
-                pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(4.5, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(1.6, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cc.set_x(1.6)
+                pdf_cc.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf_cc.multi_cell(4.5, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf_cc.multi_cell(1.6, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(1.7, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                total_cell_x = pdf.get_x()
-                pdf.multi_cell(1.9, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(1.6, cell_height, f"{process_input(cc_plan['companyShare'])}", border=border, align='R', new_x="RIGHT",
+                pdf_cc.multi_cell(1.7, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                total_cell_x = pdf_cc.get_x()
+                pdf_cc.multi_cell(1.9, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cc.multi_cell(1.6, cell_height, f"{process_input(cc_plan['companyShare'])}", border=border, align='R', new_x="RIGHT",
                                new_y="TOP")
-                pdf.multi_cell(1.6, cell_height, f"{process_input(cc_plan['employeeShare'])}", border=border, align='R', new_x="RIGHT",
+                pdf_cc.multi_cell(1.6, cell_height, f"{process_input(cc_plan['employeeShare'])}", border=border, align='R', new_x="RIGHT",
                                new_y="TOP")
-                pdf.ln(cell_height)
+                pdf_cc.ln(cell_height)
 
         if pdf.get_y() > 25.56:
             pdf.set_y(25.44)
 
-        if pdf.get_y() < 25.9:
-            pdf.set_x(total_cell_x)
-            pdf.multi_cell(1.9, 0.5, f"{process_input(data['cc_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
-            pdf.multi_cell(1.6, 0.5, f"{process_input(data['companyShareCC']['totalContribution'])}", border="TB", align='R',
+        if pdf_cc.get_y() < 25.9:
+            pdf_cc.set_x(total_cell_x)
+            pdf_cc.multi_cell(1.9, 0.5, f"{process_input(data['cc_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+            pdf_cc.multi_cell(1.6, 0.5, f"{process_input(data['companyShareCC']['totalContribution'])}", border="TB", align='R',
                            new_x="RIGHT",
                            new_y="TOP")
-            pdf.multi_cell(1.6, 0.5, f"{process_input(data['employeeShareCC']['totalContribution'])}", border="TB", align='R',
+            pdf_cc.multi_cell(1.6, 0.5, f"{process_input(data['employeeShareCC']['totalContribution'])}", border="TB", align='R',
                            new_x="RIGHT",
                            new_y="TOP")
 
             # elif "ep_plans" in plan:
     pdf.add_page()
     pdf.set_y(y_ep)
+    pdf_ep = pdf
     if len(data['ep_plans']) > 0:
         for ep_plan in data['ep_plans']:
-            pdf.set_x(1.3)
-            pdf.multi_cell(5.9, cell_height, ep_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+
             if "planOptions" in ep_plan:
                 planOptions = ep_plan["planOptions"]
                 if len(planOptions) > 0:
@@ -536,32 +562,43 @@ def first_page(data, versionNo):
                 ep_exec_string = f"{ep_plan['details']}"
                 lineBreak = False
 
+            if pdf.get_y() + (cell_height * 2) > 6.9:
+                if child_second_page is False:
+                    if plan_second_page is False:
+                        plan_second_page = True
+                        pdf2.add_page()
+                    pdf_ep = pdf2
+                    pdf2.set_y(18.2)
+
+            pdf_ep.set_font('dejavu', '', 7.8)
+            pdf_ep.set_x(1.3)
+            pdf_ep.multi_cell(5.9, cell_height, ep_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP",
+                           max_line_height=0.3)
             pdf.multi_cell(6.1, cell_height, ep_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             # pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
             # pdf.multi_cell(3.3, cell_height, f"C:${ep_plan['companyShare']} E:${ep_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
-                pdf.ln(cell_height * 1.6)
+                pdf_ep.ln(cell_height * 2.1)
             else:
-                pdf.ln(cell_height)
+                pdf_ep.ln(cell_height)
             for product in ep_plan['products']:
-                pdf.set_x(1.6)
-                pdf.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(6.4, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
-                pdf.multi_cell(1.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_ep.set_x(1.6)
+                pdf_ep.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf_ep.multi_cell(6.4, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+                pdf_ep.multi_cell(1.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
                 # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                total_cell_x = pdf.get_x()
-                pdf.multi_cell(2.2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf.ln(cell_height)
+                pdf_ep.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                total_cell_x = pdf_ep.get_x()
+                pdf_ep.multi_cell(2.2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_ep.ln(cell_height)
 
-        if pdf.get_y() < 6.93:
-            pdf.set_x(total_cell_x)
-            pdf.multi_cell(2.2, cell_height, f"{process_input(data['ep_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
-
-        # quit(0)
-
-
-
+        if pdf_ep.get_y() < 6.93:
+            pdf_ep.set_x(total_cell_x)
+            pdf_ep.multi_cell(2.2, cell_height, f"{process_input(data['ep_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+        else:
+            pdf_ep.set_x(total_cell_x)
+            pdf_ep.multi_cell(2.2, cell_height, f"{process_input(data['ep_totalAmount'])}", border="TB", align='R',
+                              new_x="RIGHT", new_y="TOP")
 
     # End
     pdf.set_font('dejavu', '', 11)
@@ -616,26 +653,35 @@ def first_page(data, versionNo):
     #     pdf2.text(0.35, 27.8, f"{versionNo}_{data['version']}")
 
     pdf.output(f'dummy_{data["first_name"]}_{data["date_of_birth"]}.pdf')
-    # pdf2.output(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
+    pdf2.output(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
     os.remove(tempFont)
 
     if "attachEquitableForm" in data:
         if data.get("attachEquitableForm") is True:
             generate_equitable_roe(data, "employee")
-    merging_pdf(child_second_page, data)
+    merging_pdf(child_second_page, data, plan_second_page)
 
 
 # merging the template with the text generated in dummy pdfs
-def merging_pdf(child_second_page, data):
+def merging_pdf(child_second_page, data, plan_second_page):
     writer = PdfWriter()
     try:
         output_path = f"{data['filePath']}{data['fileName']}"
+
+        if "employerName" not in data:
+            fileName = "template_corporate_employee_v2.1 No Employer.pdf"
+        else:
+            if data["employerName"] != "":
+                fileName = "template_corporate_employee_v2.1.pdf"
+            else:
+                fileName = "template_corporate_employee_v2.1 No Employer.pdf"
+
         try:
             if getattr(sys, 'frozen', False):
                 application_path = os.path.dirname(sys.executable)
             elif __file__:
                 application_path = os.path.dirname(__file__)
-            templateFilePath = os.path.join(application_path, "template_corporate_employee_v2.1.pdf")
+            templateFilePath = os.path.join(application_path, fileName)
             copyFile = f'{application_path}/corporate_enrollment_template_{data["first_name"]}_{data["date_of_birth"]}.pdf'
             shutil.copy2(templateFilePath, copyFile)
         except:
@@ -647,29 +693,30 @@ def merging_pdf(child_second_page, data):
 
         page = test.pages[0]
         page1 = test1.pages[0]
+        page.merge_page(page1)
+        writer.add_page(page)
         page2 = test.pages[1]
         page3 = test1.pages[1]
-        page.merge_page(page1)
         page2.merge_page(page3)
-        writer.add_page(page)
         writer.add_page(page2)
 
-        # if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
-        #     file3 = open(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf', 'rb')
-        #     test4 = PdfReader(file3)
-        #     if child_second_page is True and plan_second_page is False:
-        #         page3 = test.pages[2]
-        #     elif child_second_page is False and plan_second_page is True:
-        #         page3 = test.pages[1]
-        #     elif child_second_page is True and plan_second_page is True:
-        #         page3 = test.pages[3]
-        #     else:
-        #         page3 = None
-        #
-        #     if page3 != None:
-        #         page4 = test4.pages[0]
-        #         page3.merge_page(page4)
-        #         writer.add_page(page3)
+        if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
+            file3 = open(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf', 'rb')
+            test4 = PdfReader(file3)
+            if child_second_page is True and plan_second_page is False:
+                page3 = test.pages[3]
+            elif child_second_page is False and plan_second_page is True:
+                page3 = test.pages[2]
+            elif child_second_page is True and plan_second_page is True:
+                page3 = test.pages[4]
+            else:
+                page3 = None
+
+            if page3 != None:
+                page4 = test4.pages[0]
+                page3.merge_page(page4)
+                writer.add_page(page3)
+
 
         outputstream = open(output_path, 'wb')
         writer.write(outputstream)
@@ -689,9 +736,9 @@ def merging_pdf(child_second_page, data):
                 merger.write(output_path)
                 os.remove(filenames[1])
 
-        # if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
-        #     file3.close()
-        #     os.remove(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
+        if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
+            file3.close()
+            os.remove(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
     except Exception as e:
         print(f"ERROR: {e}")
 
@@ -723,13 +770,13 @@ json_encoded_string = sys.argv[1]
 json_decoded_string = unquote(json_encoded_string)
 data = json.loads(json_decoded_string)
 
-# File version
+# # File version
 # json_file = sys.argv[1]
 # with open(json_file, 'r') as myFile:
 #     json_file = myFile.read()
 # data = json.loads(json_file)
 
-versionNo = "v2.2"
+versionNo = "v2.2.2"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
