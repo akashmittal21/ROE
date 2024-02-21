@@ -444,10 +444,10 @@ def first_page(data, versionNo):
         #         plan_counter += 1
         if plan_second_page is True:
             pdf2.set_x(x_total)
-            pdf2.cell(2, cell_height, f"${data['totalAmount']}", border="T", align='R')
+            pdf2.cell(2, cell_height, f"${round(float(data['totalAmount']), 2)}", border="T", align='R')
         else:
             pdf.set_x(x_total)
-            pdf.cell(2, cell_height, f"${data['totalAmount']}", border="T", align='R')
+            pdf.cell(2, cell_height, f"${round(float(data['totalAmount']), 2)}", border="T", align='R')
     # End
     pdf.set_font('dejavu', '', 9)
     pdf.text(1.4, 24.15, data['paymentMethod'])  # payment method
@@ -456,7 +456,7 @@ def first_page(data, versionNo):
     if data['signature'] is not None and 'data:image/png;base64,' in data['signature']:
         signature_file_name = f'signature_{data["first_name"]}_{data["date_of_birth"]}.png'
         signature(data['signature'].split(',')[1], signature_file_name)
-        pdf.image(signature_file_name, 11.2, 24.8, 3, 1.2)  # signature
+        pdf.image(signature_file_name, 11.2, 24.98, 3, 1)  # signature
         os.remove(signature_file_name)
 
     pdf.set_font('dejavu', '', 10)
@@ -678,17 +678,17 @@ logging.getLogger("fpdf2").setLevel(logging.ERROR)
 
 
 # String version
-# json_encoded_string = sys.argv[1]
-# json_decoded_string = unquote(json_encoded_string)
-# data = json.loads(json_decoded_string)
+json_encoded_string = sys.argv[1]
+json_decoded_string = unquote(json_encoded_string)
+data = json.loads(json_decoded_string)
 
 # File version
-json_file = sys.argv[1]
-with open(json_file, 'r') as myFile:
-    json_file = myFile.read()
-data = json.loads(json_file)
+# json_file = sys.argv[1]
+# with open(json_file, 'r') as myFile:
+#     json_file = myFile.read()
+# data = json.loads(json_file)
 
-versionNo = "v2.2"
+versionNo = "v2.2.1"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
