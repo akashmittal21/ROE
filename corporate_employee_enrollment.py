@@ -432,6 +432,10 @@ def first_page(data, versionNo):
             if pdf_cp.get_y() + (cell_height * 2) > 21.3:
                 if child_second_page is False:
                     plan_second_page = True
+                    pdf.set_text_color(255, 255, 255)
+                    pdf.set_font_size(10)
+                    pdf.text(14.5, 18.3, "(Check Addendum)")
+                    pdf.set_text_color(0, 0, 0)
                     pdf_cp = pdf2
                     pdf2.add_page()
                     pdf2.set_y(5.4)
@@ -462,8 +466,8 @@ def first_page(data, versionNo):
                 pdf_cp.ln(cell_height)
         #
         # if pdf_cp.get_y() < 21.38:
-        #     pdf_cp.set_x(total_cell_x)
-        #     pdf_cp.multi_cell(2.2, cell_height, f"{process_input(data['cp_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+        pdf_cp.set_x(total_cell_x)
+        pdf_cp.multi_cell(2.2, cell_height, f"{process_input(data['cp_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
 
             # elif "cc_plans" in plan:
     pdf.set_y(y_cc)
@@ -495,6 +499,10 @@ def first_page(data, versionNo):
                     if plan_second_page is False:
                         plan_second_page = True
                         pdf2.add_page()
+                    pdf.set_text_color(255, 255, 255)
+                    pdf.set_font_size(10)
+                    pdf.text(16, 22.7, "(Check Addendum)")
+                    pdf.set_text_color(0, 0, 0)
                     pdf_cc = pdf2
                     pdf2.set_y(11.8)
 
@@ -562,11 +570,15 @@ def first_page(data, versionNo):
                 ep_exec_string = f"{ep_plan['details']}"
                 lineBreak = False
 
-            if pdf.get_y() + (cell_height * 2) > 6.9:
+            if pdf_ep.get_y() + (cell_height * 2) > 6.8:
                 if child_second_page is False:
                     if plan_second_page is False:
                         plan_second_page = True
                         pdf2.add_page()
+                    pdf.set_text_color(255, 255, 255)
+                    pdf.set_font_size(10)
+                    pdf.text(16.5, 3.85, "(Check Addendum)")
+                    pdf.set_text_color(0, 0, 0)
                     pdf_ep = pdf2
                     pdf2.set_y(18.2)
 
@@ -574,13 +586,13 @@ def first_page(data, versionNo):
             pdf_ep.set_x(1.3)
             pdf_ep.multi_cell(5.9, cell_height, ep_plan['planname'], border=border, align='L', new_x="RIGHT", new_y="TOP",
                            max_line_height=0.3)
-            pdf.multi_cell(6.1, cell_height, ep_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
+            pdf_ep.multi_cell(6.1, cell_height, ep_exec_string, border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
             # pdf.multi_cell(1.6, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
             # pdf.multi_cell(3.3, cell_height, f"C:${ep_plan['companyShare']} E:${ep_plan['employeeShare']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
             if lineBreak is True:
                 pdf_ep.ln(cell_height * 2.1)
             else:
-                pdf_ep.ln(cell_height)
+                pdf_ep.ln(cell_height * 1.2)
             for product in ep_plan['products']:
                 pdf_ep.set_x(1.6)
                 pdf_ep.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
@@ -776,7 +788,7 @@ data = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # data = json.loads(json_file)
 
-versionNo = "v2.2.2"
+versionNo = "v2.2.3"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
