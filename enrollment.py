@@ -12,6 +12,8 @@ from urllib.parse import unquote
 from PIL import Image
 
 from equitable_roe import generate_equitable_roe
+from provincial_roe import generate_provincial_roe
+from waddell_roe import generate_waddell_roe
 
 
 def warn(*args, **kwargs):
@@ -166,20 +168,37 @@ def first_page(data, versionNo):
     pdf.set_font('dejavu', '', 9)
     full_name = f"{data['first_name']} {data['last_name']}"
     pdf.text(1.4, 5.35, full_name)  # Full Name
-    checking_length(data['company_name'], 11.1, 5.35, pdf)
+    if "company_name" in data:
+        if data["company_name"] is not None:
+            checking_length(data['company_name'], 11.1, 5.35, pdf)
     checking_length(data['email'], 1.4, 6.8, pdf)
     pdf.set_font_size(9)
-    pdf.text(16, 5.35, data['date_of_hiring'])  # Date of Hire
+    if "date_of_hiring" in data:
+        if data["date_of_hiring"] is not None:
+            pdf.text(16, 5.35, data['date_of_hiring'])  # Date of Hire
     pdf.text(6.25, 6.8, data['phone_number'] or "")  # Phone number
     # pdf.text(11.1, 6.8, data['job_title'] or "")  # employee title
-    checking_length(data['job_title'], 11.1, 6.8, pdf)
+    if "job_title" in data:
+        if data["job_title"] is not None:
+            checking_length(data['job_title'], 11.1, 6.8, pdf)
     pdf.set_font_size(9)
-    pdf.text(16, 6.8, str(data['hours_per_week']) or "")  # No of hours
-    pdf.text(1.4, 8.3, data['date_of_birth'])  # Date of birth
-    pdf.text(6.25, 8.3, data['gender'])  # Gender
+    if "hours_per_week" in data:
+        if data["hours_per_week"] is not None:
+            pdf.text(16, 6.8, str(data['hours_per_week']) or "")  # No of hours
+    if "date_of_birth" in data:
+        if data["date_of_birth"] is not None:
+            pdf.text(1.4, 8.3, data['date_of_birth'])  # Date of birth
+    if "gender" in data:
+        if data["gender"] is not None:
+            pdf.text(6.25, 8.3, data['gender'])  # Gender
     pdf.text(1.4, 10.8, data['street_address_line1'])  # Address line 1
-    pdf.text(11.1, 10.8, data['street_address_line2'] or "")  # Address line 2
-    pdf.text(1.4, 12.25, data['apt'] or "")  # apartment no
+    if "street_address_line2" in data:
+        if data["street_address_line2"] is not None:
+            pdf.text(11.1, 10.8, data['street_address_line2'] or "")  # Address line 2
+
+    if "apt" in data:
+        if data["apt"] is not None:
+            pdf.text(1.4, 12.25, data['apt'] or "")  # apartment no
     pdf.text(6.25, 12.25, data['city'])  # city
     pdf.text(11.1, 12.25, data['province'])  # province
     pdf.text(16, 12.25, data['postal_code'])  # postal code
@@ -452,7 +471,9 @@ def first_page(data, versionNo):
     pdf.set_font('dejavu', '', 9)
     pdf.text(1.4, 24.15, data['paymentMethod'])  # payment method
     pdf.text(11.1, 24.15, data['planEnrollmentDate'])  # enrollment date
-    pdf.text(1.4, 25.6, data['advisorName'])  # advisor name
+    if "advisorName" in data:
+        if data['advisorName'] is not None:
+            pdf.text(1.4, 25.6, data['advisorName'])  # advisor name
     if data['signature'] is not None and 'data:image/png;base64,' in data['signature']:
         signature_file_name = f'signature_{data["first_name"]}_{data["date_of_birth"]}.png'
         signature(data['signature'].split(',')[1], signature_file_name)
@@ -489,6 +510,10 @@ def first_page(data, versionNo):
     if "attachEquitableForm" in data:
         if data.get("attachEquitableForm") is True:
             generate_equitable_roe(data, "member")
+
+    if "attachProvincialForm" in data:
+        if data.get("attachProvincialForm") is True:
+            generate_provincial_roe(data, 'member')
 
     merging_pdf(child_second_page, plan_second_page, data)
 
@@ -547,14 +572,24 @@ def merging_pdf(child_second_page, plan_second_page, data):
             file3.close()
             os.remove(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
 
-            if "attachEquitableForm" in data:
-                if data.get("attachEquitableForm") is True:
-                    filenames = [output_path, f"equitable_{data['first_name']}_{data['date_of_birth']}.pdf"]
-                    merger = PdfMerger()
-                    for file in filenames:
-                        merger.append(PdfReader(open(file, 'rb')))
-                    merger.write(output_path)
-                    os.remove(filenames[1])
+        if "attachEquitableForm" in data:
+            if data.get("attachEquitableForm") is True:
+                filenames = [output_path, f"equitable_{data['first_name']}_{data['last_name']}.pdf"]
+                merger = PdfMerger()
+                for file in filenames:
+                    merger.append(PdfReader(open(file, 'rb')))
+                merger.write(output_path)
+                os.remove(filenames[1])
+
+        if "attachProvincialForm" in data:
+            if data.get("attachProvincialForm") is True:
+                filenames = [output_path, f"provincial_{data['first_name']}_{data['last_name']}.pdf"]
+                merger = PdfMerger()
+                for file in filenames:
+                    merger.append(PdfReader(open(file, 'rb')))
+                merger.write(output_path)
+                os.remove(filenames[1])
+
     except Exception as e:
         print(f"ERROR: {e}")
 
@@ -574,7 +609,6 @@ def merging_pdf(child_second_page, plan_second_page, data):
 
 def update_pdf(data):
     writer = PdfWriter()
-
     try:
         input_path = f"{data['filePath']}{data['fileName']}"
         output_path = f"{data['filePath']}{data['fileName']}"
@@ -611,41 +645,42 @@ def update_pdf(data):
                     signature_file_name = f'signature_{data["fileName"].split(".")[0]}.png'
                     # rectangle dimensions in cm
                     x = 11.2
-                    y = 24.8
+                    y = 24.98
                     w = 3
                     h = 1.2
                     # load image from base64
                     img_data = base64.b64decode(data['signature'].split(',')[1])
                     with open(signature_file_name, 'wb') as f:
                         f.write(img_data)
-                    img = Image.open(signature_file_name)
+                    # img = Image.open(signature_file_name)
 
                     # calculate new image dimensions to fit inside rectangle
-                    aspect_ratio = img.width / img.height
-                    new_width = w
-                    new_height = new_width / aspect_ratio
-                    if new_height > h:
-                        new_height = h
-                        new_width = new_height * aspect_ratio
+                    # aspect_ratio = img.width / img.height
+                    # new_width = w
+                    # new_height = new_width / aspect_ratio
+                    # if new_height > h:
+                    #     new_height = h
+                    #     new_width = new_height * aspect_ratio
 
                     # resize image and center it inside the rectangle
-                    x_pos = x + (w - new_width) / 2
-                    y_pos = y + (h - new_height) / 2
+                    # x_pos = x + (w - new_width) / 2
+                    # y_pos = y + (h - new_height) / 2
                     # pdf.image(signature_file_name, x_pos, y_pos, new_width , new_height )
 
                     # signature(data['signature'].split(',')[1], signature_file_name)
-                    pdf.image(signature_file_name, 11.5, 23.3, 2.8, 0.98)
+                    pdf.image(signature_file_name, x, y, w, h)
                     # pdf.rect(11, 23.3, 9.3, 0.98)
-                    os.remove(signature_file_name)
 
+                    os.remove(f'signature_{data["fileName"].split(".")[0]}.png')
                 pdf.add_font('dejavu', '', tempFont)
                 pdf.set_font('dejavu', '', 9)
-                if "first_name" in data and "last_name" in data:
-                    full_name = f"{data['first_name']} {data['last_name']}"
-                    pdf.text(1.4, 5.35, full_name)
-                if "email" in data:
-                    checking_length(data['email'], 1.4, 6.8, pdf)
+                # if "first_name" in data and "last_name" in data:
+                #     full_name = f"{data['first_name']} {data['last_name']}"
+                #     pdf.text(1.4, 5.35, full_name)
+                # if "email" in data:
+                #     checking_length(data['email'], 1.4, 6.8, pdf)
         pdf.output(f'dummy_{data["fileName"]}')
+
 
         file2 = open(f'dummy_{data["fileName"]}', 'rb')
         test2 = PdfReader(file2)
@@ -678,30 +713,34 @@ logging.getLogger("fpdf2").setLevel(logging.ERROR)
 
 
 # String version
-json_encoded_string = sys.argv[1]
-json_decoded_string = unquote(json_encoded_string)
-data = json.loads(json_decoded_string)
+# json_encoded_string = sys.argv[1]
+# json_decoded_string = unquote(json_encoded_string)
+# data = json.loads(json_decoded_string)
 
 # File version
-# json_file = sys.argv[1]
-# with open(json_file, 'r') as myFile:
-#     json_file = myFile.read()
-# data = json.loads(json_file)
+json_file = sys.argv[1]
+# json_file = "enrollment_v2_input.json"
+with open(json_file, 'r') as myFile:
+    json_file = myFile.read()
+data = json.loads(json_file)
 
-versionNo = "v2.2.1"
+versionNo = "v2.5"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
 # first_page(data, versionNo)
 
 
-if "process" in data:
-    if data['process'].lower() == "update":
-        update_pdf(data)
+if "attachWaddellForm" in data and data.get('attachWaddellForm'):
+    generate_waddell_roe(data)
+else:
+    if "process" in data:
+        if data['process'].lower() == "update":
+            update_pdf(data)
+        else:
+            first_page(data, versionNo)
     else:
         first_page(data, versionNo)
-else:
-    first_page(data, versionNo)
 
 # if (int(len(data['children_details'])) > 6) or (int(len(data['plans'])) > 3):
 #     second_page(data)

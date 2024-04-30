@@ -11,6 +11,7 @@ import logging
 from urllib.parse import unquote
 
 from equitable_roe import generate_equitable_roe
+from provincial_roe import generate_provincial_roe
 
 
 def warn(*args, **kwargs):
@@ -671,88 +672,102 @@ def first_page(data, versionNo):
     if "attachEquitableForm" in data:
         if data.get("attachEquitableForm") is True:
             generate_equitable_roe(data, "employee")
+
+    if "attachProvincialForm" in data:
+        if data.get("attachProvincialForm") is True:
+            generate_provincial_roe(data, 'employee')
+
     merging_pdf(child_second_page, data, plan_second_page)
 
 
 # merging the template with the text generated in dummy pdfs
 def merging_pdf(child_second_page, data, plan_second_page):
     writer = PdfWriter()
-    try:
-        output_path = f"{data['filePath']}{data['fileName']}"
+    # try:
+    output_path = f"{data['filePath']}{data['fileName']}"
 
-        if "employerName" not in data:
-            fileName = "template_corporate_employee_v2.1 No Employer.pdf"
+    if "employerName" not in data:
+        fileName = "template_corporate_employee_v2.1 No Employer.pdf"
+    else:
+        if data["employerName"] != "":
+            fileName = "template_corporate_employee_v2.1.pdf"
         else:
-            if data["employerName"] != "":
-                fileName = "template_corporate_employee_v2.1.pdf"
-            else:
-                fileName = "template_corporate_employee_v2.1 No Employer.pdf"
+            fileName = "template_corporate_employee_v2.1 No Employer.pdf"
 
-        try:
-            if getattr(sys, 'frozen', False):
-                application_path = os.path.dirname(sys.executable)
-            elif __file__:
-                application_path = os.path.dirname(__file__)
-            templateFilePath = os.path.join(application_path, fileName)
-            copyFile = f'{application_path}/corporate_enrollment_template_{data["first_name"]}_{data["date_of_birth"]}.pdf'
-            shutil.copy2(templateFilePath, copyFile)
-        except:
-            print(f"ERROR: template.pdf file not found {templateFilePath}")
-        file1 = open(copyFile, 'rb')
-        test = PdfReader(file1)
-        file2 = open(f'dummy_{data["first_name"]}_{data["date_of_birth"]}.pdf', 'rb')
-        test1 = PdfReader(file2)
+    try:
+        if getattr(sys, 'frozen', False):
+            application_path = os.path.dirname(sys.executable)
+        elif __file__:
+            application_path = os.path.dirname(__file__)
+        templateFilePath = os.path.join(application_path, fileName)
+        copyFile = f'{application_path}/corporate_enrollment_template_{data["first_name"]}_{data["date_of_birth"]}.pdf'
+        shutil.copy2(templateFilePath, copyFile)
+    except:
+        print(f"ERROR: template.pdf file not found {templateFilePath}")
+    file1 = open(copyFile, 'rb')
+    test = PdfReader(file1)
+    file2 = open(f'dummy_{data["first_name"]}_{data["date_of_birth"]}.pdf', 'rb')
+    test1 = PdfReader(file2)
 
-        page = test.pages[0]
-        page1 = test1.pages[0]
-        page.merge_page(page1)
-        writer.add_page(page)
-        page2 = test.pages[1]
-        page3 = test1.pages[1]
-        page2.merge_page(page3)
-        writer.add_page(page2)
+    page = test.pages[0]
+    page1 = test1.pages[0]
+    page.merge_page(page1)
+    writer.add_page(page)
+    page2 = test.pages[1]
+    page3 = test1.pages[1]
+    page2.merge_page(page3)
+    writer.add_page(page2)
 
-        if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
-            file3 = open(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf', 'rb')
-            test4 = PdfReader(file3)
-            if child_second_page is True and plan_second_page is False:
-                page3 = test.pages[3]
-            elif child_second_page is False and plan_second_page is True:
-                page3 = test.pages[2]
-            elif child_second_page is True and plan_second_page is True:
-                page3 = test.pages[4]
-            else:
-                page3 = None
+    if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
+        file3 = open(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf', 'rb')
+        test4 = PdfReader(file3)
+        if child_second_page is True and plan_second_page is False:
+            page3 = test.pages[3]
+        elif child_second_page is False and plan_second_page is True:
+            page3 = test.pages[2]
+        elif child_second_page is True and plan_second_page is True:
+            page3 = test.pages[4]
+        else:
+            page3 = None
 
-            if page3 != None:
-                page4 = test4.pages[0]
-                page3.merge_page(page4)
-                writer.add_page(page3)
+        if page3 != None:
+            page4 = test4.pages[0]
+            page3.merge_page(page4)
+            writer.add_page(page3)
 
 
-        outputstream = open(output_path, 'wb')
-        writer.write(outputstream)
-        outputstream.close()
+    outputstream = open(output_path, 'wb')
+    writer.write(outputstream)
+    outputstream.close()
 
-        file1.close()
-        file2.close()
-        os.remove(f'dummy_{data["first_name"]}_{data["date_of_birth"]}.pdf')
-        os.remove(copyFile)
+    file1.close()
+    file2.close()
+    os.remove(f'dummy_{data["first_name"]}_{data["date_of_birth"]}.pdf')
+    os.remove(copyFile)
 
-        if "attachEquitableForm" in data:
-            if data.get("attachEquitableForm") is True:
-                filenames = [output_path, f"equitable_{data['first_name']}_{data['date_of_birth']}.pdf"]
-                merger = PdfMerger()
-                for file in filenames:
-                    merger.append(PdfReader(open(file, 'rb')))
-                merger.write(output_path)
-                os.remove(filenames[1])
+    if "attachEquitableForm" in data:
+        if data.get("attachEquitableForm") is True:
+            filenames = [output_path, f"equitable_{data['first_name']}_{data['last_name']}.pdf"]
+            merger = PdfMerger()
+            for file in filenames:
+                merger.append(PdfReader(open(file, 'rb')))
+            merger.write(output_path)
+            os.remove(filenames[1])
 
-        if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
-            file3.close()
-            os.remove(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
-    except Exception as e:
-        print(f"ERROR: {e}")
+    if "attachProvincialForm" in data:
+        if data.get("attachProvincialForm") is True:
+            filenames = [output_path, f"provincial_{data['first_name']}_{data['last_name']}.pdf"]
+            merger = PdfMerger()
+            for file in filenames:
+                merger.append(PdfReader(open(file, 'rb')))
+            merger.write(output_path)
+            os.remove(filenames[1])
+
+    if os.path.exists(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf'):
+        file3.close()
+        os.remove(f'dummy1_{data["first_name"]}_{data["date_of_birth"]}.pdf')
+    # except Exception as e:
+    #     print(f"ERROR: {e}")
 
     # images = convert_from_path('enrollment.pdf', dpi=300)
     # for i in range(len(images)):
@@ -788,7 +803,7 @@ data = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # data = json.loads(json_file)
 
-versionNo = "v2.2.3"
+versionNo = "v2.3"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
@@ -796,3 +811,5 @@ pdf3 = FPDF('P', 'cm', 'letter')
 first_page(data, versionNo)
 
 # TODO: Don't throw any error if the information is not found and generate the ROE
+
+# TODO: Remove spaces from all the template files

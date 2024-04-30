@@ -2,6 +2,8 @@ import json
 import sys
 import base64
 import warnings
+from datetime import datetime
+
 from fpdf import FPDF
 from PyPDF2 import PdfWriter, PdfReader, PageObject
 import os.path
@@ -12,7 +14,17 @@ import logging
 from urllib.parse import unquote
 
 
-# Applicable taxes extra
+def convert_date(date_str):
+    try:
+        date_object = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        try:
+            date_object = datetime.strptime(date_str, '%m-%d-%Y')
+        except ValueError:
+            return "Invalid date format. Please provide either yyyy-mm-dd or mm-dd-yyyy."
+
+    formatted_date = date_object.strftime('%B %d, %Y')
+    return formatted_date
 
 
 def checking_length(data, x, y, pdf):
@@ -96,6 +108,8 @@ def first_page(data):
             application_path = os.path.dirname(__file__)
         fontPath = os.path.join(application_path, "DejaVuSansCondensed.ttf")
         tempFont = f'{application_path}/DejaVuSansCondensed_{data["company_name"]}.ttf'
+        if os.path.exists(tempFont):
+            os.remove(tempFont)
         shutil.copy2(fontPath, tempFont)
     except:
         print(f"ERROR: ttf file not found {fontPath}")
@@ -108,7 +122,7 @@ def first_page(data):
 
     pdf.set_y(4.5)
     pdf.set_x(1.25)
-    pdf.multi_cell(9.3, 1, txt=data.get('company_name').title(), border=0, max_line_height=0.5, split_only=False)
+    pdf.multi_cell(9.3, 1, txt=data.get('company_name'), border=0, max_line_height=0.5, split_only=False)
     # pdf.text(1.4, 5.15, data["company_name"].title())  # Company Name
     pdf.text(1.4, 7.1, data["company_street_address"])  # Company Street Address 1
     if "company_street_address_line2" in data:
@@ -119,6 +133,8 @@ def first_page(data):
     pdf.text(6.2, 11.6, data["company_postal_code"])  # Company Postal Code
     pdf.text(1.4, 11.6, data["company_province"].title())  # Company Province
 
+    signature_name = ""
+
     # Printing Administrators
     if len(data["administrators"]) > 0:
         pdf.set_font('dejavu', '', 7.8)
@@ -127,19 +143,26 @@ def first_page(data):
         pdf.set_y(y)
         x = 11.05
         for admin in data["administrators"]:
-            pdf.set_x(x)
-            pdf.multi_cell(w=3.0, h=cell_height, txt=admin['admin_name'], border=border, align='L', new_x="RIGHT",
-                           new_y="TOP", max_line_height=0.4, split_only=False)
-            pdf.multi_cell(w=2.9, h=cell_height, txt=admin['admin_role'], border=border, align='L', new_x="RIGHT",
-                           new_y="TOP", max_line_height=0.4, split_only=False)  # Administrator's Role
-            pdf.multi_cell(w=3.32, h=cell_height, txt=admin['admin_email'], border=border, align='L', new_x="RIGHT",
-                           new_y="TOP", max_line_height=0.3, split_only=False)  # Administrator's Email
-            pdf.ln(cell_height)
+            if "ideabytes" not in admin['admin_email'] and "aitestpro" not in admin['admin_email'] and "groupbenefitz" not in admin['admin_email'] and "groupbenefits" not in admin['admin_email'] and "advisor" not in admin['admin_role'].lower():
+                pdf.set_x(x)
+                pdf.multi_cell(w=3.0, h=cell_height, txt=admin['admin_name'].title(), border=border, align='L', new_x="RIGHT",
+                               new_y="TOP", max_line_height=0.4, split_only=False)
+                pdf.multi_cell(w=2.9, h=cell_height, txt=admin['admin_role'].title(), border=border, align='L', new_x="RIGHT",
+                               new_y="TOP", max_line_height=0.4, split_only=False)  # Administrator's Role
+                pdf.multi_cell(w=3.32, h=cell_height, txt=admin['admin_email'], border=border, align='L', new_x="RIGHT",
+                               new_y="TOP", max_line_height=0.3, split_only=False)  # Administrator's Email
+
+                # if admin['admin_role'].lower() == "plan administrator":
+                #     signature_name = admin['admin_name'].title()
+
+                pdf.ln(cell_height)
 
     pdf.set_font('dejavu', '', 9.3)
-    pdf.text(1.4, 14, data["policy_start_date"])  # Policy Start Date
+    pdf.text(1.4, 14, convert_date(data["policy_start_date"]))  # Policy Start Date
     pdf.set_font('dejavu', '', primary_font)
-    pdf.text(6.2, 14, str(data["no_of_employees"]))  # Number of Employees
+    pdf.set_y(13.4)
+    pdf.set_x(6.15)
+    pdf.cell(4.4, 1, str(data["no_of_employees"]), border=0, align='C')  # Number of Employees
 
     # To check if Wallet is selected
     if data["wallet_selected"] == 0 or data["wallet_selected"] is False:
@@ -160,15 +183,14 @@ def first_page(data):
             pdf.set_font_size(8)
         pdf.set_y(16.4)
         pdf.set_x(1.3)
-        pdf.multi_cell(9.3, 1, ", ".join(province.strip() for province in data['workingProvinceList']), border=0,
-                       max_line_height=0.5)
+        pdf.multi_cell(9.3, 1, ", ".join(province.strip() for province in data['workingProvinceList']), border=0, max_line_height=0.4)
     pdf.set_font_size(7)
     pdf.set_text_color(0, 0, 255)
-    pdf.set_y(20.52)
+    pdf.set_y(21.9)
     pdf.set_x(8)
     pdf.cell(1, 1, "(View)", link=data['terms_conditions_link'])
-    pdf.set_y(20.52)
-    pdf.set_x(17.6)
+    pdf.set_y(21.9)
+    pdf.set_x(15.8)
     pdf.cell(1, 1, "(View)", link=data['advisor_disclosure_link'])
 
     pdf.set_text_color(0, 0, 0)
@@ -176,25 +198,23 @@ def first_page(data):
     pdf.set_font('dejavu', '', 12)
     # Filling the checkboxes for terms_conditions and advisor_disclosure
     if data['terms_conditions'] is True:  # terms and conditions
-        pdf.text(1.3, 21.15, u'\u2713')
+        pdf.text(1.3, 22.55, u'\u2713')
     if data['advisor_disclosure'] is True:  # advisor disclosure
-        pdf.text(11.05, 21.15, u'\u2713')
+        pdf.text(11.05, 22.55, u'\u2713')
 
     pdf.set_font('dejavu', '', primary_font)
     # To check how the payment is made
     if data["use_CreditCard"] is True:
-        pdf.text(1.4, 22.45, "Credit Card")
+        pdf.text(1.4, 23.85, "Credit Card")
     elif data["pad_Payment"] is True:
-        pdf.text(1.4, 22.45, "Pre-Authorized Debit")
+        pdf.text(1.4, 23.85, "Pre-Authorized Debit")
     elif data["invoice_Payment"] is True:
-        pdf.text(1.4, 22.45, "Invoice Method")
+        pdf.text(1.4, 23.85, "Invoice Method")
     else:
         if "paymentMethod" in data:
-            pdf.text(1.4, 22.45, data["paymentMethod"])
-        else:
-            pdf.text(1.4, 22.45, "None")
+            pdf.text(1.4, 23.85, data["paymentMethod"])
 
-    pdf.text(1.4, 23.9, data["advisor_name"])  # Advisor Name
+    pdf.text(1.4, 25.3, data["advisor_name"].title())  # Advisor Name
 
     pdf.set_text_color(255, 255, 255)
     pdf.set_font_size(5)
@@ -202,13 +222,17 @@ def first_page(data):
 
     pdf.set_font_size(primary_font)
     pdf.set_text_color(0, 0, 0)
-    # pdf.text(11.1, 22.45, data["date_signed"])  # Date Signed
+    # if "date_signed" in data:
+    #     pdf.text(11.1, 22.45, data["date_signed"])  # Date Signed
+
+    pdf.set_font_size(6)
+    pdf.text(16, 25.5, f"({data.get('loginGroupContactName').title()} - {data.get('loginGroupContactRole').title()})")
 
     # Signature
     if data['signature'] is not None and 'data:image/png;base64,' in data['signature']:
         signature_file_name = f'signature_{data["company_name"]}.png'  # Need to be updated for generating and updating
         signature(data['signature'].split(',')[1], signature_file_name)
-        # pdf.image(signature_file_name, 10.5, 23.1, 3, 1.2)
+        pdf.image(signature_file_name, 11.5, 24.7, 2.8, 0.98)
         os.remove(signature_file_name)
 
     second_page_check = False
@@ -227,201 +251,305 @@ def first_page(data):
     #         pdf.ln(cell_height)
 
     # Reset line height = 20.3
+
+    selected_plan = False
+    bulk_plan = False
+
     pdf.set_font_size(7)
-    pdf.text(11.1, 20.25, "Applicable taxes extra.")
-    if len(data["paidByCompany"]) > 0:
-        pdf.set_font('dejavu', '', 7.8)
-        y = 12.9
+    pdf.text(11.1, 21.6, "Applicable taxes extra.")
+
+    cell_height_header = 0.7
+
+    if len(data['corporateBulkPlans']) > 0:
+        bulk_plan = True
+
         cell_height = 0.5
-        pdf.set_y(y)
+        # pdf.set_font('dejavu', '', 7.8)
+        border = 0
+
+        pdf.set_y(11.8)
         pdf.set_x(11)
-        pdf.set_font('helvetica', 'BU', 7.8)
-        pdf.cell(8.7, cell_height, "Corporate Paid Plans", align='L')
-        pdf.ln(cell_height)
-        pdf.set_font('dejavu', '', 7.8)
-        for plan in data["paidByCompany"]:
-            if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 19.9:
-                if second_page_check is False:
-                    pdf.add_page()
-                    second_page_check = True
-                    pdf.set_y(5.5)
-            # print(f"second page condition {second_page_check}")
-            if second_page_check is True:
-                # print(pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25)
-                if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25:
-                    pdf.add_page()
-                    pdf.set_y(5.5)
-                second_page(plan, cell_height, border)
-            else:
-                if len(plan['priceDetails']) > 0:
-                    pdf.set_x(11)
-                    pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
-                    pdf.ln(cell_height)
-                    for province in plan['priceDetails']:
-                        priceDetails = plan['priceDetails']
-                        # for key in province:
-                        pdf.set_x(11.4)
-                        pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L',
-                                       new_x="RIGHT",
-                                       new_y="TOP", max_line_height=0.45, split_only=False)
-                        pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]),
-                                       border=border,
-                                       align='R', new_x="RIGHT", new_y="TOP")
-                        pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]),
-                                       border=border,
-                                       align='R', new_x="RIGHT", new_y="TOP")
-                        pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]),
-                                       border=border,
-                                       align='R', new_x="RIGHT", new_y="TOP")
-                        if pdf.get_string_width(province) > 3.5:
-                            pdf.ln(cell_height * 1.2)
-                        else:
-                            pdf.ln(cell_height * 0.9)
-                else:
-                    pdf.set_x(11)
-                    pdf.multi_cell(w=4, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT",
-                                   new_y="TOP", max_line_height=0.45, split_only=False)
-                    pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(plan["price_single"]), border=border,
-                                   align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(plan["price_couple"]), border=border,
-                                   align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(plan["price_family"]), border=border,
-                                   align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.ln(cell_height)
+        pdf.set_fill_color(24, 44, 76)
+        pdf.set_font('helvetica', 'B', 7.8)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(5.2, cell_height_header, " Plan", align='L', fill=True)
+        pdf.cell(2.2, cell_height_header, "Headcount", align='L', fill=True)
+        pdf.cell(1.9, cell_height_header, "Price", align='C', fill=True)
+        pdf.ln(cell_height_header)
+        pdf.set_text_color(0, 0, 0)
 
-    if len(data["coveredByCompany"]) > 0:
-        pdf.set_font('dejavu', '', 7.8)
+        x = 11
         y = 12.9
-        cell_height = 0.5
         # pdf.set_y(y)
-        pdf.set_x(11)
+        pdf.set_x(x)
         pdf.set_font('helvetica', 'BU', 7.8)
-        if second_page_check is False:
-            pdf.set_x(11)
-            pdf.cell(8.7, cell_height, "Employee permitted upgrade via Payroll Deduction", align='L')
-        else:
-            pdf.set_x(1.6)
-            pdf.cell(8.7, cell_height, "Employee permitted upgrade via Payroll Deduction", align='L')
+        pdf.cell(8.7, cell_height, "Group Plans", align='L')
         pdf.ln(cell_height)
         pdf.set_font('dejavu', '', 7.8)
+        # if selected_plan is True:
+        #     y = 19.6
+        #     x = 1.3
+        # else:
 
-        for plan in data["coveredByCompany"]:
-            if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 19.8:
-                if second_page_check is False:
-                    pdf.add_page()
-                    second_page_check = True
-                    pdf.set_y(5.5)
-            if second_page_check is True:
-                if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25:
-                    pdf.add_page()
-                    pdf.set_y(5.5)
-                second_page(plan, cell_height, border)
-                # pdf.ln(cell_height)
-            else:
-                if len(plan['priceDetails']) > 0:
-                    pdf.set_x(11)
-                    pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
-                    pdf.ln(cell_height)
-                    for province in plan['priceDetails']:
-                        priceDetails = plan['priceDetails']
-                        # for key in province:
-                        pdf.set_x(11.4)
-                        pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
-                        pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                        pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                        pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                        if pdf.get_string_width(province) > 3.5:
-                            pdf.ln(cell_height * 1.2)
-                        else:
-                            pdf.ln(cell_height * 0.9)
+        for plan in data['corporateBulkPlans']:
+            pdf.set_x(x)
+            pdf.multi_cell(w=5.2, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT",
+                           new_y="TOP", max_line_height=0.45, split_only=False)
+            pdf.multi_cell(w=1.5, h=cell_height, txt=str(plan["quantity"]), border=border, align='C', new_x="RIGHT",
+                           new_y="TOP", max_line_height=0.45, split_only=False)
+            pdf.multi_cell(w=2.1, h=cell_height, txt=f'${plan["price"] * plan["quantity"]}', border=border, align='R',
+                           new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+            pdf.ln(cell_height)
+        pdf.ln(0.2)
+
+    if bulk_plan is False:
+        pdf.set_y(11.8)
+    pdf.set_fill_color(24, 44, 76)
+    pdf.set_font('helvetica', 'B', 7.8)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_x(11)
+    pdf.cell(4.1, cell_height_header, " Plan", align='L', fill=True)
+    pdf.cell(1.8, cell_height_header, " Single", align='L', fill=True)
+    pdf.cell(1.7, cell_height_header, " Couple", align='L', fill=True)
+    pdf.cell(1.7, cell_height_header, " Family", align='L', fill=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(cell_height_header)
+
+    if "paidByCompany" in data:
+        if len(data["paidByCompany"]) > 0:
+            selected_plan = True
+            pdf.set_font('dejavu', '', 7.8)
+            y = 12.9
+            y_table = 11.8
+            cell_height = 0.5
+            # if bulk_plan is False:
+            #     pdf.set_y(y_table)
+
+            pdf.set_x(11)
+            pdf.set_font('helvetica', 'BU', 7.8)
+            pdf.cell(8.7, cell_height, "Corporate Paid Plans", align='L')
+            pdf.ln(cell_height)
+            pdf.set_font('dejavu', '', 7.8)
+            for plan in data["paidByCompany"]:
+                if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 20.9:
+                    if second_page_check is False:
+                        pdf.add_page()
+                        second_page_check = True
+                        pdf.set_y(5.5)
+                # print(f"second page condition {second_page_check}")
+                if second_page_check is True:
+                    # print(pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25)
+                    if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25:
+                        pdf.add_page()
+                        pdf.set_y(5.5)
+                    second_page(plan, cell_height, border)
                 else:
-                    pdf.set_x(11)
-                    pdf.multi_cell(w=4, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
-                    pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(plan["price_single"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(plan["price_couple"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(plan["price_family"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.ln(cell_height)
-
-    if len(data["paidByEmployee"]) > 0:
-        pdf.set_font('dejavu', '', 7.8)
-        y = 12.9
-        cell_height = 0.4
-        # pdf.set_y(y)
-        pdf.set_font('helvetica', 'BU', 7.8)
-        if second_page_check is False:
-            pdf.set_x(11)
-            pdf.cell(8.7, cell_height, "Voluntary permitted plans - Employee pays directly", align='L')
-        else:
-            pdf.set_x(1.6)
-            pdf.cell(8.7, cell_height, "Voluntary permitted plans - Employee pays directly", align='L')
-        pdf.ln(cell_height)
-        pdf.set_font('dejavu', '', 7.8)
-        for plan in data["paidByEmployee"]:
-            if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 19.8:
-                if second_page_check is False:
-                    pdf.add_page()
-                    second_page_check = True
-                    pdf.set_y(5.5)
-            if second_page_check is True:
-                if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25.1:
-                    pdf.add_page()
-                    pdf.set_y(5.5)
-                second_page(plan, cell_height, border)
-            else:
-                if len(plan['priceDetails']) > 0:
-                    pdf.set_x(11)
-                    pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
-                    pdf.ln(cell_height)
-                    for province in plan['priceDetails']:
-                        # for key in province:
-                        priceDetails = plan['priceDetails']
-                        pdf.set_x(11.4)
-                        pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L',
-                                       new_x="RIGHT",
+                    if len(plan['priceDetails']) > 0:
+                        pdf.set_x(11)
+                        pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
+                        pdf.ln(cell_height)
+                        for province in plan['priceDetails']:
+                            priceDetails = plan['priceDetails']
+                            # for key in province:
+                            pdf.set_x(11.4)
+                            pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L',
+                                           new_x="RIGHT",
+                                           new_y="TOP", max_line_height=0.45, split_only=False)
+                            pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]),
+                                           border=border,
+                                           align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]),
+                                           border=border,
+                                           align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]),
+                                           border=border,
+                                           align='R', new_x="RIGHT", new_y="TOP")
+                            if pdf.get_string_width(province) > 3.5:
+                                pdf.ln(cell_height * 1.2)
+                            else:
+                                pdf.ln(cell_height * 0.9)
+                    else:
+                        pdf.set_x(11)
+                        pdf.multi_cell(w=4, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT",
                                        new_y="TOP", max_line_height=0.45, split_only=False)
-                        pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]),
-                                       border=border,
+                        pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(plan["price_single"]), border=border,
                                        align='R', new_x="RIGHT", new_y="TOP")
-                        pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]),
-                                       border=border,
+                        pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(plan["price_couple"]), border=border,
                                        align='R', new_x="RIGHT", new_y="TOP")
-                        pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]),
-                                       border=border,
+                        pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(plan["price_family"]), border=border,
                                        align='R', new_x="RIGHT", new_y="TOP")
-                        if pdf.get_string_width(province) > 3.5:
-                            pdf.ln(cell_height * 1.2)
-                        else:
-                            pdf.ln(cell_height * 0.9)
-                else:
-                    pdf.set_x(11)
-                    pdf.multi_cell(w=4, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT",
-                                   new_y="TOP", max_line_height=0.45, split_only=False)
-                    pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(plan["price_single"]), border=border,
-                                   align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(plan["price_couple"]), border=border,
-                                   align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(plan["price_family"]), border=border,
-                                   align='R', new_x="RIGHT", new_y="TOP")
-                    pdf.ln(cell_height)
+                        pdf.ln(cell_height)
 
+    if "coveredByCompany" in data:
+        if len(data["coveredByCompany"]) > 0:
+            if selected_plan is False:
+                selected_plan = True
+            pdf.set_font('dejavu', '', 7.8)
+            y = 12.9
+            cell_height = 0.5
+            # pdf.set_y(y)
+            pdf.set_x(11)
+            pdf.set_font('helvetica', 'BU', 7.8)
+            if second_page_check is False:
+                pdf.set_x(11)
+                pdf.cell(8.7, cell_height, "Employee permitted upgrade via Payroll Deduction", align='L')
+            else:
+                pdf.set_x(1.6)
+                pdf.cell(8.7, cell_height, "Employee permitted upgrade via Payroll Deduction", align='L')
+            pdf.ln(cell_height)
+            pdf.set_font('dejavu', '', 7.8)
+
+            for plan in data["coveredByCompany"]:
+                if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 20.9:
+                    if second_page_check is False:
+                        pdf.add_page()
+                        second_page_check = True
+                        pdf.set_y(5.5)
+                if second_page_check is True:
+                    if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25:
+                        pdf.add_page()
+                        pdf.set_y(5.5)
+                    second_page(plan, cell_height, border)
+                    # pdf.ln(cell_height)
+                else:
+                    if len(plan['priceDetails']) > 0:
+                        pdf.set_x(11)
+                        pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
+                        pdf.ln(cell_height)
+                        for province in plan['priceDetails']:
+                            priceDetails = plan['priceDetails']
+                            # for key in province:
+                            pdf.set_x(11.4)
+                            pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+                            pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            if pdf.get_string_width(province) > 3.5:
+                                pdf.ln(cell_height * 1.2)
+                            else:
+                                pdf.ln(cell_height * 0.9)
+                    else:
+                        pdf.set_x(11)
+                        pdf.multi_cell(w=4, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+                        pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(plan["price_single"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
+                        pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(plan["price_couple"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
+                        pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(plan["price_family"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
+                        pdf.ln(cell_height)
+
+    if "paidByEmployee" in data:
+        if len(data["paidByEmployee"]) > 0:
+            if selected_plan is False:
+                selected_plan = True
+            pdf.set_font('dejavu', '', 7.8)
+            y = 12.9
+            cell_height = 0.4
+            # pdf.set_y(y)
+            pdf.set_font('helvetica', 'BU', 7.8)
+            if second_page_check is False:
+                pdf.set_x(11)
+                pdf.cell(8.7, cell_height, "Voluntary permitted plans - Employee pays directly", align='L')
+            else:
+                pdf.set_x(1.6)
+                pdf.cell(8.7, cell_height, "Voluntary permitted plans - Employee pays directly", align='L')
+            pdf.ln(cell_height)
+            pdf.set_font('dejavu', '', 7.8)
+            for plan in data["paidByEmployee"]:
+                if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 20.9:
+                    if second_page_check is False:
+                        pdf.add_page()
+                        second_page_check = True
+                        pdf.set_y(5.5)
+                if second_page_check is True:
+                    if pdf.get_y() + (cell_height * len(plan['priceDetails'])) > 25.1:
+                        pdf.add_page()
+                        pdf.set_y(5.5)
+                    second_page(plan, cell_height, border)
+                else:
+                    if len(plan['priceDetails']) > 0:
+                        pdf.set_x(11)
+                        pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
+                        pdf.ln(cell_height)
+                        for province in plan['priceDetails']:
+                            # for key in province:
+                            priceDetails = plan['priceDetails']
+                            pdf.set_x(11.4)
+                            pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L',
+                                           new_x="RIGHT",
+                                           new_y="TOP", max_line_height=0.45, split_only=False)
+                            pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]),
+                                           border=border,
+                                           align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]),
+                                           border=border,
+                                           align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]),
+                                           border=border,
+                                           align='R', new_x="RIGHT", new_y="TOP")
+                            if pdf.get_string_width(province) > 3.5:
+                                pdf.ln(cell_height * 1.2)
+                            else:
+                                pdf.ln(cell_height * 0.9)
+                    else:
+                        pdf.set_x(11)
+                        pdf.multi_cell(w=4, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT",
+                                       new_y="TOP", max_line_height=0.45, split_only=False)
+                        pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(plan["price_single"]), border=border,
+                                       align='R', new_x="RIGHT", new_y="TOP")
+                        pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(plan["price_couple"]), border=border,
+                                       align='R', new_x="RIGHT", new_y="TOP")
+                        pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(plan["price_family"]), border=border,
+                                       align='R', new_x="RIGHT", new_y="TOP")
+                        pdf.ln(cell_height)
+
+    # if "corporateBulkPlans" in data:
+    #     if len(data['corporateBulkPlans']) > 0:
+    #         bulk_plan = True
+    #         cell_height = 0.5
+    #         pdf.set_font('dejavu', '', 7.8)
+    #         border = 0
+    #         if selected_plan is True:
+    #             y = 19.6
+    #             x = 1.3
+    #         else:
+    #             x = 11
+    #             y = 12.9
+    #
+    #         pdf.set_y(y)
+    #         for plan in data['corporateBulkPlans']:
+    #             pdf.set_x(x)
+    #             pdf.multi_cell(w=5.2, h=cell_height, txt=plan["planLevel"], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+    #             pdf.multi_cell(w=1.5, h=cell_height, txt=str(plan["quantity"]), border=border, align='C', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+    #             pdf.multi_cell(w=2.1, h=cell_height, txt=f'${plan["price"] * plan["quantity"]}', border=border, align='R', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+    #             pdf.ln(cell_height)
+    #
+    #         pdf.set_font_size(7)
+    #         pdf.text(1.4, 21.6, "Applicable taxes extra.")
 
     # checking_length(data['company_name'], 1.5, 5.35, pdf)
 
     pdf.output(f'dummy_{data["company_name"]}.pdf')
     os.remove(tempFont)
-    merging_pdf(data)
+    merging_pdf(data, selected_plan, bulk_plan)
 
 
-def merging_pdf(data):
+def merging_pdf(data, selected_plan, bulk_plan):
     writer = PdfWriter()
     try:
         output_path = f"{data['filePath']}{data['fileName']}"
+
+        # if selected_plan is True and bulk_plan is True:
+        #     template_file_name = "Template_Corporate_ROE_Bulk_and_Selected_v3.2.pdf"
+        # elif selected_plan is True and bulk_plan is False:
+        template_file_name = "Template_Corporate_ROE_Selected_v3.3.pdf"
+        # elif selected_plan is False and bulk_plan is True:
+        #     template_file_name = "Template_Corporate_ROE_Bulk_v3.2.pdf"
+
         try:
             if getattr(sys, 'frozen', False):
                 application_path = os.path.dirname(sys.executable)
             elif __file__:
                 application_path = os.path.dirname(__file__)
-            templateFilePath = os.path.join(application_path, "Template-No Wallet and No Tier-v3.1.pdf")
+            templateFilePath = os.path.join(application_path, template_file_name)
             copyFile = f'{application_path}/corporate_enrollment_template_{data["company_name"]}.pdf'
             shutil.copy2(templateFilePath, copyFile)
         except:
@@ -533,13 +661,20 @@ def update_pdf(data):
                     # pdf.image(signature_file_name, x_pos, y_pos, new_width , new_height )
 
                     # signature(data['signature'].split(',')[1], signature_file_name)
-                    pdf.image(signature_file_name, 11.5, 23.3, 2.8, 0.98)
+                    pdf.image(signature_file_name, 11.5, 24.7, 2.8, 0.98)
                     # pdf.rect(11, 23.3, 9.3, 0.98)
                     os.remove(signature_file_name)
 
                 pdf.add_font('dejavu', '', tempFont)
                 pdf.set_font('dejavu', '', 9)
-                pdf.text(11.1, 22.45, data["date_signed"])
+                pdf.set_fill_color(223, 230, 237)
+
+                if "paymentMethod" in data:
+                    pdf.text(1.4, 23.85, data["paymentMethod"])
+                    # pdf.set_y(9.7)
+                    # pdf.set_x(6.2)
+                # pdf.cell(5, 1, data['], align='L', fill=True)
+                pdf.text(11.1, 23.85, convert_date(data["date_signed"]))
         pdf.output(f'dummy_{data["fileName"]}')
 
         file2 = open(f'dummy_{data["fileName"]}', 'rb')
@@ -558,6 +693,7 @@ def update_pdf(data):
         file1.close()
         file2.close()
         os.remove(f'dummy_{data["fileName"]}')
+        os.remove(tempFont)
 
     except Exception as e:
         print(f"ERROR: {e}")
@@ -574,7 +710,7 @@ jsonData = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # jsonData = json.loads(json_file)
 
-versionNo = "v2.4.1"
+versionNo = "v2.5.3"
 pdf = FPDF('P', 'cm', 'letter')
 
 if "process" in jsonData:
@@ -584,5 +720,6 @@ if "process" in jsonData:
         update_pdf(jsonData)
 else:
     print(f"ERROR! Wrong process mentioned {jsonData['process']}")
+
 
 

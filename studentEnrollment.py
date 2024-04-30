@@ -18,16 +18,8 @@ from equitable_roe import generate_equitable_roe
 
 # TODO: Need to write the code so that when the text goes out of its dedicatied width it needs to adjust the font till the text is in the given width
 
-
-
 def convert_date_format(input_date):
-    try:
-        date_obj = datetime.datetime.strptime(input_date, "%Y-%m-%d")
-        formatted_date = date_obj.strftime("%m/%d/%Y")
-
-        return formatted_date
-    except ValueError:
-        return "Invalid date format. Please provide a date in the YYYY-MM-DD format."
+    return input_date
 
 
 def get_image_data(url):
@@ -420,7 +412,7 @@ def studentForm(data):
 
     if "attachEquitableForm" in data:
         if data.get("attachEquitableForm") is True:
-            generate_equitable_roe(data, "employee")
+            generate_equitable_roe(data, "athabasca")
 
     merging_pdf(data)
 
@@ -472,7 +464,7 @@ def merging_pdf(data):
 
     if "attachEquitableForm" in data:
         if data.get("attachEquitableForm") is True:
-            filenames = [output_path, f"equitable_{data['first_name']}_{data['date_of_birth']}.pdf"]
+            filenames = [output_path, f"equitable_{data['firstName']}_{data['lastName']}.pdf"]
             merger = PdfMerger()
             for file in filenames:
                 merger.append(PdfReader(open(file, 'rb')))
@@ -572,17 +564,17 @@ def merging_pdf(data):
 
 
 # String version
-json_encoded_string = sys.argv[1]
-json_decoded_string = unquote(json_encoded_string)
-jsonData = json.loads(json_decoded_string)
+# json_encoded_string = sys.argv[1]
+# json_decoded_string = unquote(json_encoded_string)
+# jsonData = json.loads(json_decoded_string)
 
 # File version
-# json_file = sys.argv[1]
-# with open(json_file, 'r') as myFile:
-#     json_file = myFile.read()
-# jsonData = json.loads(json_file)
+json_file = sys.argv[1]
+with open(json_file, 'r') as myFile:
+    json_file = myFile.read()
+jsonData = json.loads(json_file)
 
-versionNo = "v2.0"
+versionNo = "v2.1"
 pdf = FPDF('P', 'cm', 'letter')
 
 studentForm(jsonData)

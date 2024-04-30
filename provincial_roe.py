@@ -6,7 +6,13 @@ import os.path
 import shutil
 from PIL import Image
 from io import BytesIO
+from datetime import datetime
 
+
+def convert_date(date_string):
+    date_object = datetime.strptime(date_string, "%Y-%m-%d")
+    formatted_date = date_object.strftime("%y-%m-%d")
+    return formatted_date
 
 def signature(string, fileName):
     decoded_data = base64.b64decode(string)
@@ -207,7 +213,7 @@ def first_page(data, pdf, member_type):
         elif __file__:
             application_path = os.path.dirname(__file__)
         fontPath = os.path.join(application_path, "DejaVuSansCondensed.ttf")
-        tempFont = f'{application_path}/tempfont_equitable.ttf'
+        tempFont = f'{application_path}/tempfont_provincial.ttf'
         shutil.copy2(fontPath, tempFont)
     except:
         print(f"ERROR: ttf file not found {fontPath}")
@@ -219,180 +225,174 @@ def first_page(data, pdf, member_type):
 
     member_details = get_member_details(data, member_type)
     # print(member_details)
+    phrData = data.get('phrMemberDetails')
 
-    # Plan Sponsor Section
-    sponsor_information = check_sponsor_information(member_type, member_details.get("planName"), member_details.get("planCoverage"), member_details.get("province"))
-    sponsor_data = data['equitableFormData']
-    pdf.text(1.25, 8.5, sponsor_information.get("associationName"))  # Name of PolicyHolder
-    pdf.text(1.25, 9.5, sponsor_information.get("policyNumber"))  # Policy Number
-    pdf.text(8, 9.5, sponsor_information.get("division"))
-    pdf.text(14.6, 9.5, sponsor_information.get("associationClass"))
-    if sponsor_data.get("certificateNumber") is not None:
-        if int(sponsor_data.get("certificateNumber")) != 0:
-            pdf.text(1.25, 10.5, f'{sponsor_data.get("certificateNumber")}')
-    pdf.text(1.25, 11.5, f'{member_details.get("hours_per_week")}')
-    pdf.text(8, 11.5, member_details.get("job_title"))
-    pdf.text(1.25, 12.55, convert_date_format(member_details.get("date_of_hiring")))
+    # Section 1
+    pdf.text(15.6, 2.25, u'\u2713')
+    pdf.text(3.9, 3.45, "The GroupBenefitz Platform Inc.")
+    pdf.text(17.2, 3.45, "28700001")
 
-    # Plan Member Section
-    pdf.text(1.25, 14.35, f"{member_details.get('first_name')} {member_details.get('last_name')}")
-    pdf.text(1.25, 15.35, convert_date_format(member_details.get("date_of_birth")))
-    # gender
-    pdf.set_font_size(8)
+    # Section 2
+    pdf.text(5, 5.1, member_details.get("last_name"))
+    pdf.text(14, 5.1, member_details.get("first_name"))
+    pdf.text(5, 5.65, member_details.get('date_of_birth'))
+
     if member_details.get("gender").lower() == "male":
-        pdf.text(8.52, 14.92, u'\u2713')
+        pdf.text(12.87, 5.6, u'\u2713')
     elif member_details.get("gender").lower() == "female":
-        pdf.text(10.58, 14.92, u'\u2713')
-    else:
-        pdf.text(8.52, 15.35, u'\u2713')
-        pdf.set_y(14.95)
-        pdf.set_x(12)
-        pdf.multi_cell(2.9, 0.5, member_details.get("gender"), border=0)
-    # language
-    if member_details.get("language").lower() == "english":
-        pdf.text(15.05, 15.36, u'\u2713')
-    else:
-        pdf.text(17.32, 15.36, u'\u2713')
-    pdf.set_font_size(9)
-    pdf.text(1.22, 16.35, member_details.get('street_address_line1'))
-    pdf.text(8.52, 16.35, member_details.get('city'))
-    pdf.text(15.0, 16.35, member_details.get('province'))
-    pdf.text(18.1, 16.35, member_details.get('postal_code'))
-    pdf.text(1.22, 17.35, data.get("email") or "")
-    pdf.set_font_size(8)
+        pdf.text(15.06, 5.6, u'\u2713')
 
-    # Section 4
-    health_coverage_provinces = ["British Columbia", "Manitoba", "Saskatchewan", "BC", "MB", "SK"]
-    if member_details.get("province").lower() in [prov.lower() for prov in health_coverage_provinces]:
-        pdf.text(13.39, 23.26, u'\u2713')
-    pdf.set_font_size(9)
+    hiring_date = data.get("date_of_hiring").split('-')
+    pdf.text(15.9, 6.3, hiring_date[2])
+    pdf.text(17.8, 6.3, hiring_date[1])
+    pdf.text(19.4, 6.3, hiring_date[0])
 
-    # ------ PAGE 2 --------
-    pdf.add_page()
-    pdf.set_font_size(9)
-    # Plan Coverage
-    # Single coverage
-    plan_coverage = member_details.get("planCoverage").strip().lower()
-    if plan_coverage == "single":
-        pdf.text(1.5, 6.65, u'\u2713')
-        pdf.text(2.78, 6.65, u'\u2713')
-    # couple coverage
-    elif plan_coverage == "couple":
-        pdf.text(1.5, 7.28, u'\u2713')
-        pdf.text(2.78, 7.28, u'\u2713')
-    # Family coverage
-    else:
-        pdf.text(10.2, 6.65, u'\u2713')
-        pdf.text(11.45, 6.65, u'\u2713')
+    if 'dateOfArrival' in phrData:
+        date_of_arrival = phrData['dateOfArrival'].split('-')
+        pdf.text(5.4, 7.4, date_of_arrival[2])
+        pdf.text(7.3, 7.4, date_of_arrival[1])
+        pdf.text(8.9, 7.4, date_of_arrival[0])
 
-    # Dependent insurance check
-    if member_details.get("dependant_carrier1_check") is True:
-        pdf.text(3.56, 10.62, u'\u2713')
-        pdf.set_y(10.7)
-        pdf.set_x(4.2)
-        pdf.multi_cell(6.4, 0.5, member_details.get("dependant_carrier1"), border=0)
+    landed_status = phrData['isLandedImmigrant']
+    applying_for_landed_status = phrData['applyingForLandingStatus']
+    if landed_status is True:
+        pdf.text(18.5, 7.3, u'\u2713')
     else:
-        pdf.text(4.73, 10.62, u'\u2713')
-    if member_details.get("dependant_carrier2_check") is True:
-        pdf.text(13.35, 10.62, u'\u2713')
-        pdf.set_y(10.7)
-        pdf.set_x(14.05)
-        pdf.multi_cell(6.4, 0.5, member_details.get("dependant_carrier2"), border=0)
-    else:
-        pdf.text(14.52, 10.62, u'\u2713')
+        pdf.text(19.75, 7.3, u'\u2713')
+        if applying_for_landed_status is True:
+            pdf.text(18.5, 7.8, u'\u2713')
+        else:
+            pdf.text(19.75, 7.8, u'\u2713')
 
-    pdf.set_font_size(9)
-    # Spouse Information
+    country_of_origin = phrData['countryOfOrigin']
+    pdf.text(5, 8.25, country_of_origin)
+
+    coverage_required_employee = phrData['coverageRequired']
+    if coverage_required_employee is True:
+        pdf.text(7.7, 8.8, u'\u2713')
+    else:
+        pdf.text(9.45, 8.8, u'\u2713')
+
+    planStartDateMember = member_details.get('dateSigned').split('-')
+    pdf.text(5.4, 9.9, planStartDateMember[2])
+    pdf.text(7.3, 9.9, planStartDateMember[1])
+    pdf.text(8.9, 9.9, planStartDateMember[0])
+
+    # Section 3
+    dependent_coverage = phrData['dependentDetails']['coverageRequired']
+    if dependent_coverage is True:
+        pdf.text(7.6, 11.95, u'\u2713')
+    else:
+        pdf.text(9, 11.95, u'\u2713')
+
+    dependent_date_of_arrival = phrData['dependentDetails']['dateOfArrival'].split('-')
+    pdf.text(15.9, 11.95, dependent_date_of_arrival[2])
+    pdf.text(17.8, 11.95, dependent_date_of_arrival[1])
+    pdf.text(19.4, 11.95, dependent_date_of_arrival[0])
+
+    plansStartDateDependent = member_details['dateSigned'].split('-')
+    pdf.text(5.4, 12.7, plansStartDateDependent[2])
+    pdf.text(7.3, 12.7, plansStartDateDependent[1])
+    pdf.text(8.9, 12.7, plansStartDateDependent[0])
+
+    dependent_landed_status = phrData['dependentDetails']['isLandedImmigrant']
+    applying_for_landed_status_dependent = phrData['dependentDetails']['applyingForLandingStatus']
+    if dependent_landed_status is True:
+        pdf.text(10.2, 13.85, u'\u2713')
+    else:
+        pdf.text(11.72, 13.85, u'\u2713')
+        if applying_for_landed_status_dependent is True:
+            pdf.text(10.27, 14.35, u'\u2713')
+        else:
+            pdf.text(11.79, 14.35, u'\u2713')
+
+    dependent_stay = phrData['dependentDetails']['stayFor3Months']
+    if dependent_stay is True:
+        pdf.text(10.2, 14.8, u'\u2713')
+    else:
+        pdf.text(11.72, 14.8, u'\u2713')
+
+    dependent_country_of_origin = phrData['dependentDetails']['countryOfOrigin']
+    pdf.text(16, 13.85, dependent_country_of_origin)
+
+    table_cell_height = 0.4
+    border = 0
+    pdf.set_font("dejavu", '', 8)
     if member_details.get("having_spouse") is True:
         spouse_information = member_details.get("spouseInformation")
-        pdf.text(1.25, 16.85, f'{spouse_information.get("first_name")} {spouse_information.get("last_name")}')
-        pdf.text(12.2, 17.3, convert_date_format(spouse_information.get("date_of_birth")))
-
-        pdf.set_font_size(9)
-        if spouse_information.get("gender").lower() == "male":
-            pdf.text(16.12, 16.9, u'\u2713')
-        elif spouse_information.get("gender").lower() == "female":
-            pdf.text(17.42, 16.9, u'\u2713')
+        pdf.set_y(15.4)
+        pdf.set_x(1.35)
+        pdf.cell(3.94, table_cell_height, spouse_information['last_name'], border=border, align='C')
+        pdf.cell(4.67, table_cell_height, spouse_information['first_name'], border=border, align='C')
+        pdf.cell(4.31, table_cell_height, "Spouse", border=border, align='C')
+        if spouse_information['gender'].lower() == "male":
+            spouse_gender = 'M'
+        elif spouse_information['gender'].lower() == "female":
+            spouse_gender = 'F'
         else:
-            pdf.text(16.12, 17.34, u'\u2713')
-            pdf.set_y(17.35)
-            pdf.set_x(16)
-            pdf.multi_cell(4.5, 0.5, spouse_information.get("gender"), border=0)
+            spouse_gender = ''
+        pdf.cell(1.9, table_cell_height, spouse_gender, border=border, align='C')
+        pdf.cell(4.2, table_cell_height, convert_date(spouse_information['date_of_birth']), border=border, align='C')
+        pdf.ln(table_cell_height)
 
-    pdf.set_font_size(9)
-    # Dependent information
     if len(member_details.get("dependantInformation")) > 0:
-        y_name = 19.9
-        y_dob = 20.1
-        y_male = 19.13
-        y_female = 19.53
-        y_other = 19.93
-        y_gender = 19.93
-        y_full_time = 19.53
-        y_disabled = 19.93
-        y_grad_date = 20.1
-        y_buffer = 1.55
-        for dependant in member_details.get("dependantInformation"):
-            pdf.text(1.25, y_name, f'{dependant.get("first_name")} {dependant.get("last_name")}')
-            pdf.text(8.4, y_dob, convert_date_format(dependant.get("date_of_birth")))
-            if dependant.get("gender").lower() == "male":
-                pdf.text(10.58, y_male, u'\u2713')
-            elif dependant.get("gender").lower() == "female":
-                pdf.text(10.58, y_female, u'\u2713')
-            else:
-                pdf.text(10.58, y_other, u'\u2713')
-                pdf.set_y(y_gender)
-                pdf.set_x(10.55)
-                pdf.multi_cell(3.7, 0.5, f'{dependant.get("gender")}', border=0)
-            if dependant.get("enrolledInUniversity") is True:
-                pdf.text(14.34, y_full_time, u'\u2713')
-            if dependant.get("isDisabled"):
-                pdf.text(14.34, y_disabled, u'\u2713')
-            if dependant.get("graduationDay") is not None:
-                pdf.text(17.4, y_grad_date, dependant.get("graduationDay"))
-            y_name += y_buffer
-            y_dob += y_buffer
-            y_male += 1.58
-            y_female += 1.58
-            y_other += 1.58
-            y_gender += y_buffer
-            y_full_time += y_buffer
-            y_disabled += y_buffer
-            y_grad_date += y_buffer
+        if member_details.get("having_spouse") is not True:
+            pdf.set_y(15.4)
+            # pdf.set_x(1.35)
 
-    pdf.set_font_size(9)
-    pdf.add_page()
+        for dependent in member_details.get("dependantInformation"):
+            pdf.set_x(1.35)
+            pdf.cell(3.94, table_cell_height, dependent['last_name'], border=border, align='C')
+            pdf.cell(4.67, table_cell_height, dependent['first_name'], border=border, align='C')
+            pdf.cell(4.31, table_cell_height, "Child", border=border, align='C')
+            if dependent['gender'].lower() == "male":
+                dependent_gender = 'M'
+            elif dependent['gender'].lower() == "female":
+                dependent_gender = 'F'
+            pdf.cell(1.9, table_cell_height, dependent_gender, border=border, align='C')
+            pdf.cell(4.2, table_cell_height, convert_date(dependent['date_of_birth']), border=border, align='C')
+            pdf.ln(table_cell_height)
 
-    pdf.add_page()
-    pdf.text(15.2, 5.1, convert_date_format(member_details.get("dateSigned")))
+    pdf.set_font("dejavu", '', 9)
+    # Section 4
     if member_details['signature'] is not None and 'data:image/png;base64,' in member_details['signature']:
-        signature_file_name = f'signature_equitable_{member_details["first_name"]}_{member_details["last_name"]}.png'
+        signature_file_name = f'signature_provincial_{member_details["first_name"]}_{member_details["last_name"]}.png'
         signature(member_details['signature'].split(',')[1], signature_file_name)
-        pdf.image(signature_file_name, 1.5, 4.3, 3, 1.2)  # signature
+        pdf.image(signature_file_name, 4.5, 21.55, 4, 0.55)  # signature
         os.remove(signature_file_name)
 
-    pdf.output(f'dummy_equitable_{member_details["first_name"]}_{member_details["last_name"]}.pdf')
+    pdf.text(16, 22, member_details['dateSigned'])
+
+    # Section 5
+    pdf.text(3.9, 23, "The GroupBenefitz Platform Inc.")
+    pdf.text(3.9, 23.5, "Plan Administrator")
+    pdf.text(3.9, 23.95, "585 - 1000 Innovation Drive")
+    pdf.text(3.9, 24.4, "Kanata")
+    pdf.text(8.7, 24.4, "Ontario")
+    pdf.text(14.6, 24.4, "K2K 3E7")
+
+    pdf.output(f'dummy_provincial_{member_details["first_name"]}_{member_details["last_name"]}.pdf')
     merging_pdf(member_details)
 
 
 def merging_pdf(member_details):
     writer = PdfWriter()
     try:
-        output_path = f"equitable_{member_details['first_name']}_{member_details['last_name']}.pdf"
+        output_path = f"provincial_{member_details['first_name']}_{member_details['last_name']}.pdf"
         try:
             if getattr(sys, 'frozen', False):
                 application_path = os.path.dirname(sys.executable)
             elif __file__:
                 application_path = os.path.dirname(__file__)
-            templateFilePath = os.path.join(application_path, "Equitable Life Application Form.pdf")
-            copyFile = f"Temp Equitable Form {member_details['first_name']}_{member_details['last_name']}.pdf"
+            templateFilePath = os.path.join(application_path, "Provincial_health_replacement_form.pdf")
+            copyFile = f"Temp Provincial Form {member_details['first_name']}_{member_details['last_name']}.pdf"
             shutil.copy2(templateFilePath, copyFile)
         except:
             print(f"ERROR: template.pdf file not found {templateFilePath}")
 
         file1 = open(copyFile, 'rb')
         test1 = PdfReader(file1)
-        file2 = open(f'dummy_equitable_{member_details["first_name"]}_{member_details["last_name"]}.pdf', 'rb')
+        file2 = open(f'dummy_provincial_{member_details["first_name"]}_{member_details["last_name"]}.pdf', 'rb')
         test2 = PdfReader(file2)
 
         no_of_pages = len(test2.pages)
@@ -416,14 +416,14 @@ def merging_pdf(member_details):
         file1.close()
         file2.close()
 
-        os.remove(f'dummy_equitable_{member_details["first_name"]}_{member_details["last_name"]}.pdf')
+        os.remove(f'dummy_provincial_{member_details["first_name"]}_{member_details["last_name"]}.pdf')
         os.remove(copyFile)
 
     except Exception as e:
         print(f"ERROR: {e}")
 
 
-def generate_equitable_roe(data, member_type):
-    versionNo = "v1.0.2"
+def generate_provincial_roe(data, member_type):
+    versionNo = "v1.0.1"
     pdf = FPDF('P', 'cm', 'Letter')
     first_page(data, pdf, member_type=member_type)
