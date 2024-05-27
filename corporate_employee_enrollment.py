@@ -500,12 +500,12 @@ def first_page(data, versionNo):
                     if plan_second_page is False:
                         plan_second_page = True
                         pdf2.add_page()
-                    pdf.set_text_color(255, 255, 255)
-                    pdf.set_font_size(10)
-                    pdf.text(16, 22.7, "(Check Addendum)")
-                    pdf.set_text_color(0, 0, 0)
-                    pdf_cc = pdf2
-                    pdf2.set_y(11.8)
+                        pdf.set_text_color(255, 255, 255)
+                        pdf.set_font_size(10)
+                        pdf.text(16, 22.7, "(Check Addendum)")
+                        pdf.set_text_color(0, 0, 0)
+                        pdf_cc = pdf2
+                        pdf2.set_y(11.8)
 
             pdf_cc.set_font('dejavu', '', 7.8)
             pdf_cc.set_x(1.3)
@@ -576,12 +576,12 @@ def first_page(data, versionNo):
                     if plan_second_page is False:
                         plan_second_page = True
                         pdf2.add_page()
-                    pdf.set_text_color(255, 255, 255)
-                    pdf.set_font_size(10)
-                    pdf.text(16.5, 3.85, "(Check Addendum)")
-                    pdf.set_text_color(0, 0, 0)
-                    pdf_ep = pdf2
-                    pdf2.set_y(18.2)
+                        pdf.set_text_color(255, 255, 255)
+                        pdf.set_font_size(10)
+                        pdf.text(16.5, 3.85, "(Check Addendum)")
+                        pdf.set_text_color(0, 0, 0)
+                        pdf_ep = pdf2
+                        pdf2.set_y(18.2)
 
             pdf_ep.set_font('dejavu', '', 7.8)
             pdf_ep.set_x(1.3)
@@ -803,7 +803,7 @@ data = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # data = json.loads(json_file)
 
-versionNo = "v2.3"
+versionNo = "v2.3.1"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')

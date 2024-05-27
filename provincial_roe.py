@@ -159,53 +159,6 @@ def get_member_details(data, ctype):
     return member
 
 
-def check_sponsor_information(ctype, plan_name, plan_coverage, province):
-    province_list1 = ["British Columbia", "Manitoba", "Saskatchewan", "BC", "MB", "SK"]
-
-    association_details = {
-        "associationName": None,
-        "policyNumber": None,
-        "division": None,
-        "associationClass": None
-    }
-
-    if ctype.lower() == "athabasca":
-        association_details["associationName"] = "The GroupBenefitz Platform Inc. (Athabasca University Voluntary Student Plan)"
-        association_details["policyNumber"] = "815082"
-        association_details["division"] = "001"
-        association_details["associationClass"] = "A"
-    else:
-        association_details["associationName"] = "The GroupBenefitz Platform Inc."
-        association_details["policyNumber"] = "814458"
-        if any(province.lower() in plan_name.lower() for province in province_list1):
-            association_details["division"] = "001"
-            if "gold" in plan_name.lower():
-                association_details["associationClass"] = "A"
-            if "silver" in plan_name.lower():
-                association_details["associationClass"] = "B"
-            if "bronze" in plan_name.lower():
-                association_details["associationClass"] = "C"
-        else:
-            if province.lower() in province_list1:
-                association_details["division"] = "001"
-                if "gold" in plan_name.lower():
-                    association_details["associationClass"] = "A"
-                if "silver" in plan_name.lower():
-                    association_details["associationClass"] = "B"
-                if "bronze" in plan_name.lower():
-                    association_details["associationClass"] = "C"
-            else:
-                association_details["division"] = "002"
-                if "gold" in plan_name.lower():
-                    association_details["associationClass"] = "D"
-                if "silver" in plan_name.lower():
-                    association_details["associationClass"] = "E"
-                if "bronze" in plan_name.lower():
-                    association_details["associationClass"] = "F"
-
-    return association_details
-
-
 def first_page(data, pdf, member_type):
     try:
         if getattr(sys, 'frozen', False):
@@ -279,79 +232,81 @@ def first_page(data, pdf, member_type):
     pdf.text(8.9, 9.9, planStartDateMember[0])
 
     # Section 3
-    dependent_coverage = phrData['dependentDetails']['coverageRequired']
-    if dependent_coverage is True:
-        pdf.text(7.6, 11.95, u'\u2713')
-    else:
-        pdf.text(9, 11.95, u'\u2713')
-
-    dependent_date_of_arrival = phrData['dependentDetails']['dateOfArrival'].split('-')
-    pdf.text(15.9, 11.95, dependent_date_of_arrival[2])
-    pdf.text(17.8, 11.95, dependent_date_of_arrival[1])
-    pdf.text(19.4, 11.95, dependent_date_of_arrival[0])
-
-    plansStartDateDependent = member_details['dateSigned'].split('-')
-    pdf.text(5.4, 12.7, plansStartDateDependent[2])
-    pdf.text(7.3, 12.7, plansStartDateDependent[1])
-    pdf.text(8.9, 12.7, plansStartDateDependent[0])
-
-    dependent_landed_status = phrData['dependentDetails']['isLandedImmigrant']
-    applying_for_landed_status_dependent = phrData['dependentDetails']['applyingForLandingStatus']
-    if dependent_landed_status is True:
-        pdf.text(10.2, 13.85, u'\u2713')
-    else:
-        pdf.text(11.72, 13.85, u'\u2713')
-        if applying_for_landed_status_dependent is True:
-            pdf.text(10.27, 14.35, u'\u2713')
+    if data.get('having_spouse') is True or data.get('dependantInformation') is not None:
+        dependent_coverage = phrData['dependentDetails']['coverageRequired']
+        if dependent_coverage is True:
+            pdf.text(7.6, 11.95, u'\u2713')
         else:
-            pdf.text(11.79, 14.35, u'\u2713')
+            pdf.text(9, 11.95, u'\u2713')
 
-    dependent_stay = phrData['dependentDetails']['stayFor3Months']
-    if dependent_stay is True:
-        pdf.text(10.2, 14.8, u'\u2713')
-    else:
-        pdf.text(11.72, 14.8, u'\u2713')
+        dependent_date_of_arrival = phrData['dependentDetails']['dateOfArrival'].split('-')
+        if len(dependent_date_of_arrival) > 1:
+            pdf.text(15.9, 11.95, dependent_date_of_arrival[2])
+            pdf.text(17.8, 11.95, dependent_date_of_arrival[1])
+            pdf.text(19.4, 11.95, dependent_date_of_arrival[0])
 
-    dependent_country_of_origin = phrData['dependentDetails']['countryOfOrigin']
-    pdf.text(16, 13.85, dependent_country_of_origin)
+        plansStartDateDependent = member_details['dateSigned'].split('-')
+        pdf.text(5.4, 12.7, plansStartDateDependent[2])
+        pdf.text(7.3, 12.7, plansStartDateDependent[1])
+        pdf.text(8.9, 12.7, plansStartDateDependent[0])
 
-    table_cell_height = 0.4
-    border = 0
-    pdf.set_font("dejavu", '', 8)
-    if member_details.get("having_spouse") is True:
-        spouse_information = member_details.get("spouseInformation")
-        pdf.set_y(15.4)
-        pdf.set_x(1.35)
-        pdf.cell(3.94, table_cell_height, spouse_information['last_name'], border=border, align='C')
-        pdf.cell(4.67, table_cell_height, spouse_information['first_name'], border=border, align='C')
-        pdf.cell(4.31, table_cell_height, "Spouse", border=border, align='C')
-        if spouse_information['gender'].lower() == "male":
-            spouse_gender = 'M'
-        elif spouse_information['gender'].lower() == "female":
-            spouse_gender = 'F'
+        dependent_landed_status = phrData['dependentDetails']['isLandedImmigrant']
+        applying_for_landed_status_dependent = phrData['dependentDetails']['applyingForLandingStatus']
+        if dependent_landed_status is True:
+            pdf.text(10.2, 13.85, u'\u2713')
         else:
-            spouse_gender = ''
-        pdf.cell(1.9, table_cell_height, spouse_gender, border=border, align='C')
-        pdf.cell(4.2, table_cell_height, convert_date(spouse_information['date_of_birth']), border=border, align='C')
-        pdf.ln(table_cell_height)
+            pdf.text(11.72, 13.85, u'\u2713')
+            if applying_for_landed_status_dependent is True:
+                pdf.text(10.27, 14.35, u'\u2713')
+            else:
+                pdf.text(11.79, 14.35, u'\u2713')
 
-    if len(member_details.get("dependantInformation")) > 0:
-        if member_details.get("having_spouse") is not True:
+        dependent_stay = phrData['dependentDetails']['stayFor3Months']
+        if dependent_stay is True:
+            pdf.text(10.2, 14.8, u'\u2713')
+        else:
+            pdf.text(11.72, 14.8, u'\u2713')
+
+        dependent_country_of_origin = phrData['dependentDetails']['countryOfOrigin']
+        pdf.text(16, 13.85, dependent_country_of_origin)
+
+        table_cell_height = 0.4
+        border = 0
+        pdf.set_font("dejavu", '', 8)
+        if member_details.get("having_spouse") is True:
+            spouse_information = member_details.get("spouseInformation")
             pdf.set_y(15.4)
-            # pdf.set_x(1.35)
-
-        for dependent in member_details.get("dependantInformation"):
             pdf.set_x(1.35)
-            pdf.cell(3.94, table_cell_height, dependent['last_name'], border=border, align='C')
-            pdf.cell(4.67, table_cell_height, dependent['first_name'], border=border, align='C')
-            pdf.cell(4.31, table_cell_height, "Child", border=border, align='C')
-            if dependent['gender'].lower() == "male":
-                dependent_gender = 'M'
-            elif dependent['gender'].lower() == "female":
-                dependent_gender = 'F'
-            pdf.cell(1.9, table_cell_height, dependent_gender, border=border, align='C')
-            pdf.cell(4.2, table_cell_height, convert_date(dependent['date_of_birth']), border=border, align='C')
+            pdf.cell(3.94, table_cell_height, spouse_information['last_name'], border=border, align='C')
+            pdf.cell(4.67, table_cell_height, spouse_information['first_name'], border=border, align='C')
+            pdf.cell(4.31, table_cell_height, "Spouse", border=border, align='C')
+            if spouse_information['gender'].lower() == "male":
+                spouse_gender = 'M'
+            elif spouse_information['gender'].lower() == "female":
+                spouse_gender = 'F'
+            else:
+                spouse_gender = ''
+            pdf.cell(1.9, table_cell_height, spouse_gender, border=border, align='C')
+            pdf.cell(4.2, table_cell_height, convert_date(spouse_information['date_of_birth']), border=border, align='C')
             pdf.ln(table_cell_height)
+
+        if len(member_details.get("dependantInformation")) > 0:
+            if member_details.get("having_spouse") is not True:
+                pdf.set_y(15.4)
+                # pdf.set_x(1.35)
+
+            for dependent in member_details.get("dependantInformation"):
+                pdf.set_x(1.35)
+                pdf.cell(3.94, table_cell_height, dependent['last_name'], border=border, align='C')
+                pdf.cell(4.67, table_cell_height, dependent['first_name'], border=border, align='C')
+                pdf.cell(4.31, table_cell_height, "Child", border=border, align='C')
+                if dependent['gender'].lower() == "male":
+                    dependent_gender = 'M'
+                elif dependent['gender'].lower() == "female":
+                    dependent_gender = 'F'
+                pdf.cell(1.9, table_cell_height, dependent_gender, border=border, align='C')
+                pdf.cell(4.2, table_cell_height, convert_date(dependent['date_of_birth']), border=border, align='C')
+                pdf.ln(table_cell_height)
 
     pdf.set_font("dejavu", '', 9)
     # Section 4
@@ -427,3 +382,4 @@ def generate_provincial_roe(data, member_type):
     versionNo = "v1.0.1"
     pdf = FPDF('P', 'cm', 'Letter')
     first_page(data, pdf, member_type=member_type)
+    

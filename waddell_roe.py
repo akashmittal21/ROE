@@ -41,13 +41,13 @@ def first_page(data, pdf):
     border = 0
     pdf.set_y(6.25)
     pdf.set_x(1.3)
-    pdf.multi_cell(9.3, 1, text=data.get('email'), border=border, max_line_height=0.5)
+    pdf.multi_cell(9.3, 1, data.get('email'), border=border, max_line_height=0.5)
 
     pdf.text(11.1, 6.85, data['phone_number'])  # Phone number
 
     pdf.set_y(8.75)
     pdf.set_x(1.3)
-    pdf.multi_cell(9.3, 1, text=data.get('street_address_line1'), border=border, max_line_height=0.5)
+    pdf.multi_cell(9.3, 1, data.get('street_address_line1'), border=border, max_line_height=0.5)
 
     pdf.text(11.1, 9.35, data['city'])
 

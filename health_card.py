@@ -1,10 +1,11 @@
 import sys
 import json
-from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2 import PdfWriter, PdfReader
 from fpdf import FPDF
 import os.path
 from urllib.parse import unquote
 import shutil
+from datetime import datetime
 
 
 def print_text(pdf, full_name, relationship, certificate, carrier, policyNo, issueNo, y, displayVersion, fontSize, version, version_no):
@@ -22,9 +23,74 @@ def print_text(pdf, full_name, relationship, certificate, carrier, policyNo, iss
         pdf.text(10, 10, f"{version_no}_{version}")
 
 
+def print_card_p(cowan, versionNo):
+    pdf_p.add_page()
+    writer = PdfWriter()
+    pdf_p.set_font('helvetica', '', 7)
+
+    pdf_p.text(106, 80, f"{cowan['customer']['firstName'].upper()} {cowan['customer']['lastName'].upper()}")
+
+    if len(cowan['dependents']) > 0:
+        y = 104
+        x = 60
+        i = 1
+        for dependent in cowan['dependents']:
+            if i == 4:
+                x = x + 130
+                y = 104
+            pdf_p.text(x, y, f"{dependent['firstName'].upper()} {dependent['lastName'].upper()}")
+            y += 9
+            i += 1
+
+    pdf_p.text(106, 135, cowan['customer']['certMembershipId'])
+    date_obj = datetime.strptime(cowan['planEnrollmentDate'], "%Y-%m-%d")
+    formatted_date = date_obj.strftime("%m/%d/%Y")
+    pdf_p.text(106, 145, formatted_date)
+
+    if cowan['displayVersion']:
+        pdf_g.set_font('helvetica', '', int(cowan['fontSize']))
+        pdf_g.text(10, 780, f"{versionNo}_{cowan['version']}")
+
+    pdf_p.text(238, 135, "158927-D")
+
+    pdf_p.output(f"g_dummy_phr_{cowan['customer']['certMembershipId']}.pdf")
+
+
+    try:
+        if getattr(sys, 'frozen', False):
+            application_path = os.path.dirname(sys.executable)
+        elif __file__:
+            application_path = os.path.dirname(__file__)
+        filePath = os.path.join(application_path, "cowan_template.pdf")
+        tempFile = f"{application_path}/Cowan_template_{cowan['customer']['certMembershipId']}.pdf"
+        shutil.copy2(filePath, tempFile)
+    except:
+        print(f"ERROR: ttf file not found {filePath}")
+    file1 = open(tempFile, 'rb')
+    test = PdfReader(file1)
+    # with open(f"g_dummy_{greenshield['customer']['certMembershipId']}.pdf", 'rb') as my_file:
+    #     test1 = PdfReader(my_file)
+
+    file2 = open(f"g_dummy_phr_{cowan['customer']['certMembershipId']}.pdf", 'rb')
+    test1 = PdfReader(file2)
+
+    page = test.pages[0]
+    page1 = test1.pages[0]
+    page.merge_page(page1)
+    writer.add_page(page)
+
+    outputstream = open(f"{cowan['filePath']}{cowan['fileName']}", 'wb')
+    writer.write(outputstream)
+    outputstream.close()
+    file1.close()
+    file2.close()
+    os.remove(f"g_dummy_phr_{cowan['customer']['certMembershipId']}.pdf")
+    os.remove(tempFile)
+
+
 def print_card_g(greenshield, versionNo):
     pdf_g.add_page()
-    writer = PdfFileWriter()
+    writer = PdfWriter()
     pdf_g.set_font('helvetica', 'B', 10)
     place_holder = 0
     pdf_g.text(43, 210, f"{greenshield['customer']['firstName'].upper()} {greenshield['customer']['lastName'].upper()}")
@@ -59,7 +125,6 @@ def print_card_g(greenshield, versionNo):
         pdf_g.set_font('helvetica', '', int(greenshield['fontSize']))
         pdf_g.text(10, 780, f"{versionNo}_{greenshield['version']}")
 
-
     pdf_g.output(f"g_dummy_{greenshield['customer']['certMembershipId']}.pdf")
 
     try:
@@ -73,16 +138,16 @@ def print_card_g(greenshield, versionNo):
     except:
         print(f"ERROR: ttf file not found {filePath}")
     file1 = open(tempFile, 'rb')
-    test = PdfFileReader(file1)
+    test = PdfReader(file1)
     # with open(f"g_dummy_{greenshield['customer']['certMembershipId']}.pdf", 'rb') as my_file:
-    #     test1 = PdfFileReader(my_file)
+    #     test1 = PdfReader(my_file)
 
     file2 = open(f"g_dummy_{greenshield['customer']['certMembershipId']}.pdf", 'rb')
-    test1 = PdfFileReader(file2)
+    test1 = PdfReader(file2)
 
     page = test.getPage(0)
     page1 = test1.getPage(0)
-    page.mergePage(page1)
+    page.merge_page(page1)
     writer.add_page(page)
 
     outputstream = open(f"{greenshield['filePath']}{greenshield['fileName']}", 'wb')
@@ -95,8 +160,8 @@ def print_card_g(greenshield, versionNo):
 
 
 def print_card_e(equitable, versionNo):
-    writer = PdfFileWriter()
-    output = PdfFileWriter()
+    writer = PdfWriter()
+    output = PdfWriter()
     displayVersion = equitable['displayVersion']
     fontSize = int(equitable['fontSize'])
     version = equitable['version']
@@ -131,25 +196,25 @@ def print_card_e(equitable, versionNo):
     except:
         print(f"ERROR: ttf file not found {filePath}")
     file1 = open(tempFile, 'rb')
-    test = PdfFileReader(file1)
+    test = PdfReader(file1)
     file2 = open(f"e_dummy_{equitable['serviceData']['policyNo']}_{equitable['customer']['certMembershipId']}.pdf", 'rb')
-    test1 = PdfFileReader(file2)
+    test1 = PdfReader(file2)
     total_pages = test1.getNumPages()
 
     g = 0
     while g < total_pages:
-        output.add_page(test.getPage(0))
+        output.add_page(test.pages[0])
         g += 1
     output.write(f"equitable_template_duplicate_{equitable['serviceData']['policyNo']}_{equitable['customer']['certMembershipId']}.pdf")
 
     file3 = open(f"equitable_template_duplicate_{equitable['serviceData']['policyNo']}_{equitable['customer']['certMembershipId']}.pdf", 'rb')
-    test3 = PdfFileReader(file3)
+    test3 = PdfReader(file3)
 
     x = 0
     while x < total_pages:
         page = test3.getPage(x)
         page1 = test1.getPage(x)
-        page.mergePage(page1)
+        page.merge_page(page1)
         writer.add_page(page)
         x += 1
 
@@ -166,30 +231,27 @@ def print_card_e(equitable, versionNo):
 
 pdf_g = FPDF('P', 'pt', [611, 791])
 pdf_e = FPDF('P', 'pt', [595, 842])
+pdf_p = FPDF('P', 'pt', 'Letter')
 
 # String version
-# json_encoded_string = sys.argv[1]
-# json_decoded_string = unquote(json_encoded_string)
-# data = json.loads(json_decoded_string)
+json_encoded_string = sys.argv[1]
+json_decoded_string = unquote(json_encoded_string)
+data = json.loads(json_decoded_string)
 
 # Version No
-version = "v1.1"
+version = "v1.2"
 
 # File version
-json_file = sys.argv[1]
-with open(json_file, 'r') as myFile:
-    json_file = myFile.read()
-data = json.loads(json_file)
+# json_file = sys.argv[1]
+# with open(json_file, 'r') as myFile:
+#     json_file = myFile.read()
+# data = json.loads(json_file)
 
 if data['service'].upper() == "GREENSHIELD":
     print_card_g(data, version)
 elif data['service'].upper() == "EQUITABLE":
     print_card_e(data, version)
+elif data['service'].upper() == "COWAN":
+    print_card_p(data, version)
 else:
     print(f"Please check the service name")
-
-# While doing the output for equitable life, we will need to create two different variables for PDFWriter that way the final pdf won't have the pages that are
-# being duplicated (same PDFWriter object will add the pages being duplicated to final pdf i.e. the first few pages will be the duplicate template pages and then
-# output pages)
-# Need to write the code that creates the copy of the templates files (greenshield and equitablelife) and changes the names of the output files so that they contain
-# first name and date of birth - for easier distinction

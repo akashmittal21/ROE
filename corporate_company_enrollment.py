@@ -53,20 +53,31 @@ def second_page(plan, cell_height, border):
         pdf.set_x(1.6)
         pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
         pdf.ln(cell_height)
-        for province in plan['priceDetails']:
+        sorted_provinces = sorted(plan['priceDetails'].keys())
+        for province in sorted_provinces:
             # for key in province:
-            priceDetails = plan['priceDetails']
+            priceDetails = plan['priceDetails'][province]
+            price_single = '${:.2f}'.format(priceDetails["single"])
+            price_couple = '${:.2f}'.format(priceDetails["couple"])
+            price_family = '${:.2f}'.format(priceDetails["family"])
+            if int(priceDetails['single']) == 0:
+                price_single = "NA"
+            if int(priceDetails['couple']) == 0:
+                price_couple = "NA"
+            if int(priceDetails['family']) == 0:
+                price_family = "NA"
+
             pdf.set_x(2)
             pdf.multi_cell(w=12.1, h=cell_height, txt=f'{province}', border=border, align='L',
                            new_x="RIGHT",
                            new_y="TOP", max_line_height=0.45, split_only=False)
-            pdf.multi_cell(w=1.6, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]),
+            pdf.multi_cell(w=1.6, h=cell_height, txt=price_single,
                            border=border,
                            align='R', new_x="RIGHT", new_y="TOP")
-            pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]),
+            pdf.multi_cell(w=1.8, h=cell_height, txt=price_couple,
                            border=border,
                            align='R', new_x="RIGHT", new_y="TOP")
-            pdf.multi_cell(w=2, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]),
+            pdf.multi_cell(w=2, h=cell_height, txt=price_family,
                            border=border,
                            align='R', new_x="RIGHT", new_y="TOP")
             pdf.ln(cell_height)
@@ -348,22 +359,24 @@ def first_page(data):
                         pdf.set_x(11)
                         pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
                         pdf.ln(cell_height)
-                        for province in plan['priceDetails']:
-                            priceDetails = plan['priceDetails']
+                        sorted_provinces = sorted(plan['priceDetails'].keys())
+                        for province in sorted_provinces:
+                            priceDetails = plan['priceDetails'][province]
+                            price_single = '${:.2f}'.format(priceDetails["single"])
+                            price_couple = '${:.2f}'.format(priceDetails["couple"])
+                            price_family = '${:.2f}'.format(priceDetails["family"])
+                            if int(priceDetails['single']) == 0:
+                                price_single = "NA"
+                            if int(priceDetails['couple']) == 0:
+                                price_couple = "NA"
+                            if int(priceDetails['family']) == 0:
+                                price_family = "NA"
                             # for key in province:
                             pdf.set_x(11.4)
-                            pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L',
-                                           new_x="RIGHT",
-                                           new_y="TOP", max_line_height=0.45, split_only=False)
-                            pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]),
-                                           border=border,
-                                           align='R', new_x="RIGHT", new_y="TOP")
-                            pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]),
-                                           border=border,
-                                           align='R', new_x="RIGHT", new_y="TOP")
-                            pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]),
-                                           border=border,
-                                           align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+                            pdf.multi_cell(w=1.4, h=cell_height, txt=price_single, border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.8, h=cell_height, txt=price_couple, border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.7, h=cell_height, txt=price_family, border=border, align='R', new_x="RIGHT", new_y="TOP")
                             if pdf.get_string_width(province) > 3.5:
                                 pdf.ln(cell_height * 1.2)
                             else:
@@ -416,14 +429,24 @@ def first_page(data):
                         pdf.set_x(11)
                         pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
                         pdf.ln(cell_height)
-                        for province in plan['priceDetails']:
-                            priceDetails = plan['priceDetails']
+                        sorted_provinces = sorted(plan['priceDetails'].keys())
+                        for province in sorted_provinces:
+                            priceDetails = plan['priceDetails'][province]
+                            price_single = '${:.2f}'.format(priceDetails["single"])
+                            price_couple = '${:.2f}'.format(priceDetails["couple"])
+                            price_family = '${:.2f}'.format(priceDetails["family"])
+                            if int(priceDetails['single']) == 0:
+                                price_single = "NA"
+                            if int(priceDetails['couple']) == 0:
+                                price_couple = "NA"
+                            if int(priceDetails['family']) == 0:
+                                price_family = "NA"
                             # for key in province:
                             pdf.set_x(11.4)
                             pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
-                            pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                            pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
-                            pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]), border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.4, h=cell_height, txt=price_single, border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.8, h=cell_height, txt=price_couple, border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.7, h=cell_height, txt=price_family, border=border, align='R', new_x="RIGHT", new_y="TOP")
                             if pdf.get_string_width(province) > 3.5:
                                 pdf.ln(cell_height * 1.2)
                             else:
@@ -469,22 +492,24 @@ def first_page(data):
                         pdf.set_x(11)
                         pdf.cell(8.7, cell_height, txt=plan["planLevel"], align='L')
                         pdf.ln(cell_height)
-                        for province in plan['priceDetails']:
+                        sorted_provinces = sorted(plan['priceDetails'].keys())
+                        for province in sorted_provinces:
                             # for key in province:
-                            priceDetails = plan['priceDetails']
+                            priceDetails = plan['priceDetails'][province]
+                            price_single = '${:.2f}'.format(priceDetails["single"])
+                            price_couple = '${:.2f}'.format(priceDetails["couple"])
+                            price_family = '${:.2f}'.format(priceDetails["family"])
+                            if int(priceDetails['single']) == 0:
+                                price_single = "NA"
+                            if int(priceDetails['couple']) == 0:
+                                price_couple = "NA"
+                            if int(priceDetails['family']) == 0:
+                                price_family = "NA"
                             pdf.set_x(11.4)
-                            pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L',
-                                           new_x="RIGHT",
-                                           new_y="TOP", max_line_height=0.45, split_only=False)
-                            pdf.multi_cell(w=1.4, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["single"]),
-                                           border=border,
-                                           align='R', new_x="RIGHT", new_y="TOP")
-                            pdf.multi_cell(w=1.8, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["couple"]),
-                                           border=border,
-                                           align='R', new_x="RIGHT", new_y="TOP")
-                            pdf.multi_cell(w=1.7, h=cell_height, txt='${:.2f}'.format(priceDetails[province]["family"]),
-                                           border=border,
-                                           align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=3.6, h=cell_height, txt=f'{province}', border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.45, split_only=False)
+                            pdf.multi_cell(w=1.4, h=cell_height, txt=price_single, border=border, align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.8, h=cell_height, txt=price_couple,border=border,align='R', new_x="RIGHT", new_y="TOP")
+                            pdf.multi_cell(w=1.7, h=cell_height, txt=price_family, border=border, align='R', new_x="RIGHT", new_y="TOP")
                             if pdf.get_string_width(province) > 3.5:
                                 pdf.ln(cell_height * 1.2)
                             else:
@@ -710,7 +735,7 @@ jsonData = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # jsonData = json.loads(json_file)
 
-versionNo = "v2.5.3"
+versionNo = "v2.5.4"
 pdf = FPDF('P', 'cm', 'letter')
 
 if "process" in jsonData:
