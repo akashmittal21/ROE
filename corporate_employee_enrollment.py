@@ -452,6 +452,14 @@ def first_page(data, versionNo):
             else:
                 pdf_cp.ln(cell_height)
             for product in cp_plan['products']:
+                if "employerName" in data and data["employerName"] != "":
+                    planPrice = ""
+                    planTax = ""
+                    planTotal = ""
+                else:
+                    planPrice = f"${product['price']}"
+                    planTax = f"${product['tax']}"
+                    planTotal = f"${product['total']}"
                 pdf_cp.set_x(1.6)
                 pdf_cp.multi_cell(5.6, cell_height, product['name'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
                 pdf_cp.multi_cell(6.4, cell_height, product['planCoverage'], border=border, align='L', new_x="RIGHT", new_y="TOP", max_line_height=0.3)
@@ -459,16 +467,19 @@ def first_page(data, versionNo):
                 #                   new_y="TOP", max_line_height=0.3)
                 # pdf_cp.multi_cell(5, cell_height, f"Paid by Company", border=border, align='L', new_x="RIGHT",
                 #                   new_y="TOP")
-                pdf_cp.multi_cell(1.5, cell_height, f"${product['price']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cp.multi_cell(1.5, cell_height, planPrice, border=border, align='R', new_x="RIGHT", new_y="TOP")
                 # pdf.multi_cell(3.3, cell_height, f"", border=border, align='R', new_x="RIGHT", new_y="TOP")
-                pdf_cp.multi_cell(2.8, cell_height, f"${product['tax']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cp.multi_cell(2.8, cell_height, planTax, border=border, align='R', new_x="RIGHT", new_y="TOP")
                 total_cell_x = pdf_cp.get_x()
-                pdf_cp.multi_cell(2.2, cell_height, f"${product['total']}", border=border, align='R', new_x="RIGHT", new_y="TOP")
+                pdf_cp.multi_cell(2.2, cell_height, planTotal, border=border, align='R', new_x="RIGHT", new_y="TOP")
                 pdf_cp.ln(cell_height)
         #
         # if pdf_cp.get_y() < 21.38:
-        pdf_cp.set_x(total_cell_x)
-        pdf_cp.multi_cell(2.2, cell_height, f"{process_input(data['cp_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
+        if "employerName" in data and data["employerName"] != "":
+            pass
+        else:
+            pdf_cp.set_x(total_cell_x)
+            pdf_cp.multi_cell(2.2, cell_height, f"{process_input(data['cp_totalAmount'])}", border="TB", align='R', new_x="RIGHT", new_y="TOP")
 
             # elif "cc_plans" in plan:
     pdf.set_y(y_cc)
@@ -803,7 +814,7 @@ data = json.loads(json_decoded_string)
 #     json_file = myFile.read()
 # data = json.loads(json_file)
 
-versionNo = "v2.3.1"
+versionNo = "v2.3.2"
 pdf = FPDF('P', 'cm', 'letter')
 pdf2 = FPDF('P', 'cm', 'letter')
 pdf3 = FPDF('P', 'cm', 'letter')
